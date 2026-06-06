@@ -77,6 +77,11 @@ if ($args.Count -ge 1) {
       Write-Host 'Stored key removed.'
       exit 0
     }
+    '^(update|--update|upgrade|--upgrade)$' {
+      Write-Host 'Updating deepclaude to the latest version...'
+      irm 'https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.ps1' | iex
+      exit 0
+    }
   }
 }
 

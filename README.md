@@ -68,6 +68,12 @@ deepclaude reset             # delete the stored key
 
 `config`, `set-key`, and `change` are accepted as aliases for `change-key`.
 
+## Update
+
+```bash
+deepclaude update    # pull the latest version (re-runs the installer)
+```
+
 | Platform        | Where the key is stored                          |
 | --------------- | ------------------------------------------------ |
 | macOS / Linux   | `~/.config/deepclaude/config` (perms `600`)      |

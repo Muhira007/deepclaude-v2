@@ -103,6 +103,11 @@ case "${1:-}" in
     say "Stored key removed."
     exit 0
     ;;
+  update|--update|upgrade|--upgrade)
+    say "Updating deepclaude to the latest version..."
+    curl -fsSL "https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.sh" | bash
+    exit $?
+    ;;
 esac
 
 # --- resolve the key -------------------------------------------------------
