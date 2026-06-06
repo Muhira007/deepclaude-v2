@@ -67,7 +67,7 @@ function Invoke-Setup {
 # --- subcommands -----------------------------------------------------------
 if ($args.Count -ge 1) {
   switch -Regex ($args[0]) {
-    '^(config|--config|set-key|--set-key)$' {
+    '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key)$' {
       if ($args.Count -ge 2) { Save-Key $args[1] } else { Invoke-Setup }
       Write-Host "Done. Run 'deepclaude' to start."
       exit 0

@@ -61,10 +61,12 @@ The key is resolved in this order:
 ## Manage your key
 
 ```bash
-deepclaude config        # re-enter / change the stored key (interactive)
-deepclaude config <KEY>  # set the key without a prompt
-deepclaude reset         # delete the stored key
+deepclaude change-key        # change the stored key (interactive prompt)
+deepclaude change-key <KEY>  # change the key without a prompt
+deepclaude reset             # delete the stored key
 ```
+
+`config`, `set-key`, and `change` are accepted as aliases for `change-key`.
 
 | Platform        | Where the key is stored                          |
 | --------------- | ------------------------------------------------ |

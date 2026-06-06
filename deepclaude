@@ -89,7 +89,7 @@ interactive_setup() {
 
 # --- subcommands -----------------------------------------------------------
 case "${1:-}" in
-  config|--config|set-key|--set-key)
+  config|--config|set-key|--set-key|change|--change|change-key|--change-key)
     if [ "${2:-}" != "" ]; then
       save_key "$2"
     else
