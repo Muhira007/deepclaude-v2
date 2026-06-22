@@ -270,8 +270,8 @@ graph LR
     end
 
     subgraph "Model DeepSeek"
-        C1[deepseek-v4-pro[1m]<br/>1M context, reasoning kuat]
-        C2[deepseek-v4-flash<br/>Cepat, efisien]
+        C1["deepseek-v4-pro[1m]<br/>1M context, reasoning kuat"]
+        C2["deepseek-v4-flash<br/>Cepat, efisien"]
     end
 
     A1 --> B1 --> C1
