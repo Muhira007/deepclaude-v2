@@ -1,10 +1,10 @@
-#compdef deepclaude
-# Zsh completion for deepclaude
+#compdef dpcl
+# Zsh completion for dpcl
 # Source this file in your ~/.zshrc:
 #   fpath=(/path/to/completions $fpath)
 #   autoload -Uz compinit && compinit
 
-_deepclaude() {
+_dpcl() {
   local -a subcommands flags
 
   subcommands=(
@@ -13,7 +13,7 @@ _deepclaude() {
     'change-key:Alias for config'
     'change:Alias for config'
     'reset:Delete the stored API key'
-    'update:Update deepclaude to the latest version'
+    'update:Update dpcl to the latest version'
     'upgrade:Alias for update'
     'verify:Verify the stored API key against DeepSeek API'
     'show-config:Print current configuration'
@@ -35,4 +35,4 @@ _deepclaude() {
     '*::args:'
 }
 
-_deepclaude
+_dpcl

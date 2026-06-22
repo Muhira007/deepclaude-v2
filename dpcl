@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# deepclaude — run Claude Code against DeepSeek's Anthropic-compatible API.
+# dpcl — run Claude Code against DeepSeek's Anthropic-compatible API.
 #
 # Key resolution order:
-#   1. `deepclaude config [KEY]`     — set/replace the stored key (inline or prompt)
+#   1. `dpcl config [KEY]`     — set/replace the stored key (inline or prompt)
 #   2. stored config file            — set on a previous run
 #   3. DEEPSEEK_API_KEY env var      — used and saved for next time
 #   4. interactive prompt            — asks for the key if you haven't included it yet
@@ -13,7 +13,7 @@ set -euo pipefail
 VERSION="1.0.0"
 
 # --- paths -------------------------------------------------------------------
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/deepclaude"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/dpcl"
 CONFIG_FILE="$CONFIG_DIR/config"
 
 # --- defaults ----------------------------------------------------------------
@@ -26,7 +26,7 @@ DEFAULT_EFFORT="max"
 say()   { printf '%s\n' "$*" >&2; }
 die()   { say "ERROR: $*"; exit 1; }
 warn()  { say "WARNING: $*"; }
-debug() { [ "${DEEPCLAUDE_VERBOSE:-0}" = "1" ] && say "[DEBUG] $*" || true; }
+debug() { [ "${DPCL_VERBOSE:-0}" = "1" ] && say "[DEBUG] $*" || true; }
 
 trim() {
   local s="$1"
@@ -121,7 +121,7 @@ verify_key_api() {
 interactive_setup() {
   say ""
   say "┌──────────────────────────────────────────┐"
-  say "│  deepclaude · first-time setup            │"
+  say "│  dpcl · first-time setup            │"
   say "└──────────────────────────────────────────┘"
   say ""
   say "Claude Code will run against DeepSeek's API."
@@ -167,10 +167,10 @@ read_secret() {
 # --- help --------------------------------------------------------------------
 show_help() {
   cat <<'EOF'
-deepclaude — run Claude Code against DeepSeek's Anthropic-compatible API.
+dpcl — run Claude Code against DeepSeek's Anthropic-compatible API.
 
 USAGE
-  deepclaude [FLAGS] [--] [ARGUMENTS...]
+  dpcl [FLAGS] [--] [ARGUMENTS...]
 
 FLAGS
   --help, help       Show this help message
@@ -180,50 +180,50 @@ FLAGS
   --safe             Run WITHOUT --dangerously-skip-permissions (more prompts)
 
 SUBCOMMANDS
-  deepclaude config [KEY]       Set or change the stored API key
-  deepclaude change-key [KEY]   Alias for config
-  deepclaude reset              Delete the stored API key
-  deepclaude update             Update to the latest version
-  deepclaude verify             Verify the stored API key against DeepSeek API
-  deepclaude show-config        Print current configuration (key masked)
+  dpcl config [KEY]       Set or change the stored API key
+  dpcl change-key [KEY]   Alias for config
+  dpcl reset              Delete the stored API key
+  dpcl update             Update to the latest version
+  dpcl verify             Verify the stored API key against DeepSeek API
+  dpcl show-config        Print current configuration (key masked)
 
 KEY RESOLUTION ORDER
-  1. deepclaude config <KEY>
-  2. Stored config file (~/.config/deepclaude/config)
+  1. dpcl config <KEY>
+  2. Stored config file (~/.config/dpcl/config)
   3. DEEPSEEK_API_KEY environment variable (auto-saved on use)
   4. Interactive prompt
 
 ENVIRONMENT VARIABLES
   DEEPSEEK_API_KEY              DeepSeek API key (saved automatically on first use)
-  DEEPCLAUDE_SAFE=1             Same as --safe (skip --dangerously-skip-permissions)
-  DEEPCLAUDE_VERBOSE=1          Same as --verbose
-  DEEPCLAUDE_MODEL              Default model (default: deepseek-v4-pro[1m])
-  DEEPCLAUDE_HAIKU_MODEL        Haiku/flash model (default: deepseek-v4-flash)
-  DEEPCLAUDE_SUBAGENT_MODEL     Subagent model (default: deepseek-v4-flash)
-  DEEPCLAUDE_EFFORT             Effort level (default: max)
+  DPCL_SAFE=1             Same as --safe (skip --dangerously-skip-permissions)
+  DPCL_VERBOSE=1          Same as --verbose
+  DPCL_MODEL              Default model (default: deepseek-v4-pro[1m])
+  DPCL_HAIKU_MODEL        Haiku/flash model (default: deepseek-v4-flash)
+  DPCL_SUBAGENT_MODEL     Subagent model (default: deepseek-v4-flash)
+  DPCL_EFFORT             Effort level (default: max)
 
 CONFIG FILE
-  Path:  ~/.config/deepclaude/config  (chmod 600)
+  Path:  ~/.config/dpcl/config  (chmod 600)
   Format: KEY=VALUE (one per line)
 
   Customize models in the config file:
-    DEEPCLAUDE_MODEL=deepseek-v4-pro[1m]
-    DEEPCLAUDE_HAIKU_MODEL=deepseek-v4-flash
-    DEEPCLAUDE_SUBAGENT_MODEL=deepseek-v4-flash
-    DEEPCLAUDE_EFFORT=max
-    DEEPCLAUDE_SAFE=1
+    DPCL_MODEL=deepseek-v4-pro[1m]
+    DPCL_HAIKU_MODEL=deepseek-v4-flash
+    DPCL_SUBAGENT_MODEL=deepseek-v4-flash
+    DPCL_EFFORT=max
+    DPCL_SAFE=1
 
   Or set them per-session as environment variables.
 
 EXAMPLES
-  deepclaude                              # First run: enter key, then start
-  deepclaude "refactor this module"       # Pass a prompt to Claude Code
-  deepclaude --safe "rm -rf ./build"      # Run with permission prompts enabled
-  deepclaude --dry-run --verbose          # Preview what will be set
-  deepclaude config sk-xxx                # Set key without interactive prompt
-  deepclaude verify                       # Check if your stored key works
-  deepclaude show-config                  # See current settings
-  DEEPCLAUDE_MODEL=other-model deepclaude # Override model for one session
+  dpcl                              # First run: enter key, then start
+  dpcl "refactor this module"       # Pass a prompt to Claude Code
+  dpcl --safe "rm -rf ./build"      # Run with permission prompts enabled
+  dpcl --dry-run --verbose          # Preview what will be set
+  dpcl config sk-xxx                # Set key without interactive prompt
+  dpcl verify                       # Check if your stored key works
+  dpcl show-config                  # See current settings
+  DPCL_MODEL=other-model dpcl # Override model for one session
 EOF
   exit 0
 }
@@ -232,19 +232,19 @@ EOF
 show_config() {
   local key saved_safe
   key="$(read_key || true)"
-  saved_safe="$(read_config "DEEPCLAUDE_SAFE" 2>/dev/null || echo "0")"
+  saved_safe="$(read_config "DPCL_SAFE" 2>/dev/null || echo "0")"
 
   echo "Config file : $CONFIG_FILE"
   echo "Config dir  : $CONFIG_DIR"
   echo "---"
   echo "API key     : ${key:+(stored, ${#key} chars)}"
-  echo "Safe mode   : ${DEEPCLAUDE_SAFE:-$saved_safe}"
+  echo "Safe mode   : ${DPCL_SAFE:-$saved_safe}"
   echo "---"
   echo "Model overrides (from config or env):"
-  echo "  MODEL        : ${DEEPCLAUDE_MODEL:-$(read_config "DEEPCLAUDE_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
-  echo "  HAIKU_MODEL  : ${DEEPCLAUDE_HAIKU_MODEL:-$(read_config "DEEPCLAUDE_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
-  echo "  SUBAGENT     : ${DEEPCLAUDE_SUBAGENT_MODEL:-$(read_config "DEEPCLAUDE_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
-  echo "  EFFORT       : ${DEEPCLAUDE_EFFORT:-$(read_config "DEEPCLAUDE_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
+  echo "  MODEL        : ${DPCL_MODEL:-$(read_config "DPCL_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
+  echo "  HAIKU_MODEL  : ${DPCL_HAIKU_MODEL:-$(read_config "DPCL_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
+  echo "  SUBAGENT     : ${DPCL_SUBAGENT_MODEL:-$(read_config "DPCL_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
+  echo "  EFFORT       : ${DPCL_EFFORT:-$(read_config "DPCL_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
   exit 0
 }
 
@@ -252,14 +252,14 @@ show_config() {
 do_dry_run() {
   local key safe_mode model haiku_model subagent_model effort
   key="$(read_key || true)"
-  safe_mode="${DEEPCLAUDE_SAFE:-$(read_config "DEEPCLAUDE_SAFE" 2>/dev/null || echo "0")}"
-  model="${DEEPCLAUDE_MODEL:-$(read_config "DEEPCLAUDE_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
-  haiku_model="${DEEPCLAUDE_HAIKU_MODEL:-$(read_config "DEEPCLAUDE_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
-  subagent_model="${DEEPCLAUDE_SUBAGENT_MODEL:-$(read_config "DEEPCLAUDE_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
-  effort="${DEEPCLAUDE_EFFORT:-$(read_config "DEEPCLAUDE_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
+  safe_mode="${DPCL_SAFE:-$(read_config "DPCL_SAFE" 2>/dev/null || echo "0")}"
+  model="${DPCL_MODEL:-$(read_config "DPCL_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
+  haiku_model="${DPCL_HAIKU_MODEL:-$(read_config "DPCL_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
+  subagent_model="${DPCL_SUBAGENT_MODEL:-$(read_config "DPCL_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
+  effort="${DPCL_EFFORT:-$(read_config "DPCL_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
 
   echo "═══════════════════════════════════════════════"
-  echo "  deepclaude dry-run"
+  echo "  dpcl dry-run"
   echo "═══════════════════════════════════════════════"
   echo ""
   echo "Would set these environment variables:"
@@ -296,7 +296,7 @@ handle_subcommand() {
       else
         interactive_setup
       fi
-      say "Done. Run 'deepclaude' to start."
+      say "Done. Run 'dpcl' to start."
       exit 0
       ;;
     reset|--reset)
@@ -309,14 +309,14 @@ handle_subcommand() {
       exit 0
       ;;
     update|--update|upgrade|--upgrade)
-      say "Updating deepclaude to the latest version..."
+      say "Updating dpcl to the latest version..."
       curl -fsSL "https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.sh" | bash
       exit $?
       ;;
     verify|--verify)
       local key; key="$(read_key || true)"
       if [ -z "$key" ]; then
-        die "No stored key. Run 'deepclaude config' first."
+        die "No stored key. Run 'dpcl config' first."
       fi
       say "Stored key: ${key:0:5}...${key: -4} (${#key} chars)"
       if validate_key_format "$key"; then
@@ -340,7 +340,7 @@ handle_subcommand() {
 # MAIN
 # ============================================================================
 
-# Parse deepclaude-specific flags from the front of the argument list.
+# Parse dpcl-specific flags from the front of the argument list.
 DRY_RUN=0
 PASSTHROUGH_ARGS=()
 
@@ -350,7 +350,7 @@ while [ $# -gt 0 ]; do
       show_help
       ;;
     --version)
-      echo "deepclaude v$VERSION"
+      echo "dpcl v$VERSION"
       exit 0
       ;;
     --dry-run)
@@ -358,13 +358,13 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     --verbose)
-      DEEPCLAUDE_VERBOSE=1
-      export DEEPCLAUDE_VERBOSE
+      DPCL_VERBOSE=1
+      export DPCL_VERBOSE
       shift
       ;;
     --safe)
-      DEEPCLAUDE_SAFE=1
-      export DEEPCLAUDE_SAFE
+      DPCL_SAFE=1
+      export DPCL_SAFE
       shift
       ;;
     --)
@@ -384,11 +384,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-debug "deepclaude v$VERSION starting"
+debug "dpcl v$VERSION starting"
 debug "CONFIG_FILE=$CONFIG_FILE"
 debug "DRY_RUN=$DRY_RUN"
-debug "DEEPCLAUDE_SAFE=${DEEPCLAUDE_SAFE:-0}"
-debug "DEEPCLAUDE_VERBOSE=${DEEPCLAUDE_VERBOSE:-0}"
+debug "DPCL_SAFE=${DPCL_SAFE:-0}"
+debug "DPCL_VERBOSE=${DPCL_VERBOSE:-0}"
 
 # --- resolve the key ---------------------------------------------------------
 KEY="$(read_key || true)"
@@ -411,18 +411,18 @@ if [ -z "${KEY:-}" ]; then
 fi
 
 if [ -z "${KEY:-}" ]; then
-  die "No API key available. Run 'deepclaude config' to set one."
+  die "No API key available. Run 'dpcl config' to set one."
 fi
 
 debug "Key resolved (${#KEY} chars)"
 
 # --- resolve model overrides -------------------------------------------------
 # Priority: env var > config file > built-in default
-MODEL="${DEEPCLAUDE_MODEL:-$(read_config "DEEPCLAUDE_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
-HAIKU_MODEL="${DEEPCLAUDE_HAIKU_MODEL:-$(read_config "DEEPCLAUDE_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
-SUBAGENT_MODEL="${DEEPCLAUDE_SUBAGENT_MODEL:-$(read_config "DEEPCLAUDE_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
-EFFORT="${DEEPCLAUDE_EFFORT:-$(read_config "DEEPCLAUDE_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
-SAFE_MODE="${DEEPCLAUDE_SAFE:-$(read_config "DEEPCLAUDE_SAFE" 2>/dev/null || echo "0")}"
+MODEL="${DPCL_MODEL:-$(read_config "DPCL_MODEL" 2>/dev/null || echo "$DEFAULT_MODEL")}"
+HAIKU_MODEL="${DPCL_HAIKU_MODEL:-$(read_config "DPCL_HAIKU_MODEL" 2>/dev/null || echo "$DEFAULT_HAIKU_MODEL")}"
+SUBAGENT_MODEL="${DPCL_SUBAGENT_MODEL:-$(read_config "DPCL_SUBAGENT_MODEL" 2>/dev/null || echo "$DEFAULT_SUBAGENT_MODEL")}"
+EFFORT="${DPCL_EFFORT:-$(read_config "DPCL_EFFORT" 2>/dev/null || echo "$DEFAULT_EFFORT")}"
+SAFE_MODE="${DPCL_SAFE:-$(read_config "DPCL_SAFE" 2>/dev/null || echo "0")}"
 
 debug "MODEL=$MODEL"
 debug "HAIKU_MODEL=$HAIKU_MODEL"

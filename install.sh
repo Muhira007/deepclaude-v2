@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deepclaude installer.
+# dpcl installer.
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.sh | bash
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 
 REPO="https://raw.githubusercontent.com/Muhira007/deepclaude-v2"
 VERSION="${VERSION:-main}"
-CMD_NAME="deepclaude"
+CMD_NAME="dpcl"
 BIN_DIR="${DEST:-$HOME/.local/bin}"
 REPO_URL="${REPO}/${VERSION}"
 
@@ -22,7 +22,7 @@ die()   { say "ERROR: $*"; exit 1; }
 
 # --- pre-flight checks -------------------------------------------------------
 if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
-  die "Need curl or wget to download deepclaude."
+  die "Need curl or wget to download dpcl."
 fi
 
 # --- download function -------------------------------------------------------

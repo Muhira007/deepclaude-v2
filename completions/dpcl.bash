@@ -1,8 +1,8 @@
-# Bash completion for deepclaude
+# Bash completion for dpcl
 # Source this file in your ~/.bashrc:
-#   source /path/to/completions/deepclaude.bash
+#   source /path/to/completions/dpcl.bash
 
-_deepclaude() {
+_dpcl() {
   local cur prev words cword
   _init_completion || return
 
@@ -16,7 +16,7 @@ _deepclaude() {
       COMPREPLY=()
       return
       ;;
-    deepclaude)
+    dpcl)
       # First word: complete subcommands + flags
       COMPREPLY=($(compgen -W "$subcommands $flags" -- "$cur"))
       return
@@ -27,4 +27,4 @@ _deepclaude() {
   COMPREPLY=($(compgen -W "$subcommands $flags" -- "$cur"))
 }
 
-complete -F _deepclaude deepclaude
+complete -F _dpcl dpcl

@@ -1,12 +1,12 @@
-# Contributing to DeepClaude
+# Contributing to Dpcl
 
-Thanks for your interest in improving DeepClaude!
+Thanks for your interest in improving Dpcl!
 
 ## Development setup
 
 ```bash
 git clone https://github.com/Muhira007/deepclaude-v2.git
-cd deepclaude
+cd dpcl
 ```
 
 No build step — the scripts are interpreted directly.
@@ -20,7 +20,7 @@ No build step — the scripts are interpreted directly.
 # Arch Linux:  sudo pacman -S bats shellcheck
 
 # Run linting
-make lint          # or: shellcheck deepclaude install.sh
+make lint          # or: shellcheck dpcl install.sh
 
 # Run tests
 make test          # or: bats tests/
@@ -32,9 +32,9 @@ make check
 ## Project structure
 
 ```
-deepclaude/
-├── deepclaude          # Main Bash script (Linux/macOS)
-├── deepclaude.ps1      # PowerShell script (Windows)
+dpcl/
+├── dpcl          # Main Bash script (Linux/macOS)
+├── dpcl.ps1      # PowerShell script (Windows)
 ├── install.sh          # Bash installer
 ├── install.ps1         # PowerShell installer
 ├── completions/        # Shell completions (bash/zsh/fish)
@@ -46,7 +46,7 @@ deepclaude/
 
 ## Code conventions
 
-### Bash (`deepclaude`, `install.sh`)
+### Bash (`dpcl`, `install.sh`)
 
 - Use `set -euo pipefail`
 - Functions are `snake_case`
@@ -55,7 +55,7 @@ deepclaude/
 - Keep line length under ~100 chars
 - Run `shellcheck` before committing
 
-### PowerShell (`deepclaude.ps1`, `install.ps1`)
+### PowerShell (`dpcl.ps1`, `install.ps1`)
 
 - Use `Verb-Noun` function naming
 - `$Script:` scope for module-level variables
@@ -65,8 +65,8 @@ deepclaude/
 ## Adding a feature
 
 1. Fork the repo and create a feature branch
-2. Implement in **both** `deepclaude` (Bash) and `deepclaude.ps1` (PowerShell)
-3. Add tests in `tests/test_deepclaude.bats`
+2. Implement in **both** `dpcl` (Bash) and `dpcl.ps1` (PowerShell)
+3. Add tests in `tests/test_dpcl.bats`
 4. Update `README.md` if the feature changes user-facing behavior
 5. Run `make check` to ensure all checks pass
 6. Open a PR against `main`
@@ -79,7 +79,7 @@ We follow [SemVer](https://semver.org/). To bump the version:
 make bump
 ```
 
-This updates `VERSION` in both `deepclaude` and `deepclaude.ps1`.
+This updates `VERSION` in both `dpcl` and `dpcl.ps1`.
 
 ## Release checklist
 

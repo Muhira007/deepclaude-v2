@@ -1,5 +1,5 @@
-# shellcheck configuration for deepclaude
-# Run: shellcheck deepclaude install.sh
+# shellcheck configuration for dpcl
+# Run: shellcheck dpcl install.sh
 
 # We use printf '%s\n' instead of echo — suppress the warning
 disable=SC3037

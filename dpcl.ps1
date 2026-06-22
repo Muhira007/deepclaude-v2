@@ -1,7 +1,7 @@
-# deepclaude — run Claude Code against DeepSeek's Anthropic-compatible API (Windows).
+# dpcl — run Claude Code against DeepSeek's Anthropic-compatible API (Windows).
 #
 # Key resolution order:
-#   1. `deepclaude config [KEY]`  — set/replace the stored key (inline or prompt)
+#   1. `dpcl config [KEY]`  — set/replace the stored key (inline or prompt)
 #   2. stored config file         — set on a previous run
 #   3. $env:DEEPSEEK_API_KEY      — used and saved for next time
 #   4. interactive prompt         — asks for the key if you haven't included it yet
@@ -9,7 +9,7 @@
 $ErrorActionPreference = 'Stop'
 
 $Script:Version      = '1.0.0'
-$Script:ConfigDir    = Join-Path $env:APPDATA 'deepclaude'
+$Script:ConfigDir    = Join-Path $env:APPDATA 'dpcl'
 $Script:ConfigFile   = Join-Path $Script:ConfigDir 'config'
 
 # --- defaults ----------------------------------------------------------------
@@ -24,7 +24,7 @@ function Write-Warn  { param([string]$Msg) Write-Host "WARNING: $Msg" -Foregroun
 function Write-ErrorX { param([string]$Msg) Write-Host "ERROR: $Msg" -ForegroundColor Red; exit 1 }
 function Write-DebugX {
   param([string]$Msg)
-  if ($env:DEEPCLAUDE_VERBOSE -eq '1') { Write-Host "[DEBUG] $Msg" -ForegroundColor DarkGray }
+  if ($env:DPCL_VERBOSE -eq '1') { Write-Host "[DEBUG] $Msg" -ForegroundColor DarkGray }
 }
 
 # --- config file I/O ---------------------------------------------------------
@@ -124,7 +124,7 @@ function Test-KeyApi {
 function Invoke-Setup {
   Write-Say ''
   Write-Say '+------------------------------------------+'
-  Write-Say '|  deepclaude - first-time setup           |'
+  Write-Say '|  dpcl - first-time setup           |'
   Write-Say '+------------------------------------------+'
   Write-Say ''
   Write-Say "Claude Code will run against DeepSeek's API."
@@ -155,10 +155,10 @@ function Invoke-Setup {
 # --- help --------------------------------------------------------------------
 function Show-Help {
 @'
-deepclaude — run Claude Code against DeepSeek's Anthropic-compatible API.
+dpcl — run Claude Code against DeepSeek's Anthropic-compatible API.
 
 USAGE
-  deepclaude [FLAGS] [--] [ARGUMENTS...]
+  dpcl [FLAGS] [--] [ARGUMENTS...]
 
 FLAGS
   --help, help       Show this help message
@@ -168,41 +168,41 @@ FLAGS
   --safe             Run WITHOUT --dangerously-skip-permissions (more prompts)
 
 SUBCOMMANDS
-  deepclaude config [KEY]       Set or change the stored API key
-  deepclaude change-key [KEY]   Alias for config
-  deepclaude reset              Delete the stored API key
-  deepclaude update             Update to the latest version
-  deepclaude verify             Verify the stored API key against DeepSeek API
-  deepclaude show-config        Print current configuration (key masked)
+  dpcl config [KEY]       Set or change the stored API key
+  dpcl change-key [KEY]   Alias for config
+  dpcl reset              Delete the stored API key
+  dpcl update             Update to the latest version
+  dpcl verify             Verify the stored API key against DeepSeek API
+  dpcl show-config        Print current configuration (key masked)
 
 KEY RESOLUTION ORDER
-  1. deepclaude config <KEY>
-  2. Stored config file (%APPDATA%\deepclaude\config)
+  1. dpcl config <KEY>
+  2. Stored config file (%APPDATA%\dpcl\config)
   3. DEEPSEEK_API_KEY environment variable (auto-saved on use)
   4. Interactive prompt
 
 ENVIRONMENT VARIABLES
   DEEPSEEK_API_KEY              DeepSeek API key (saved automatically on first use)
-  DEEPCLAUDE_SAFE=1             Same as --safe
-  DEEPCLAUDE_VERBOSE=1          Same as --verbose
-  DEEPCLAUDE_MODEL              Default model (default: deepseek-v4-pro[1m])
-  DEEPCLAUDE_HAIKU_MODEL        Haiku/flash model (default: deepseek-v4-flash)
-  DEEPCLAUDE_SUBAGENT_MODEL     Subagent model (default: deepseek-v4-flash)
-  DEEPCLAUDE_EFFORT             Effort level (default: max)
+  DPCL_SAFE=1             Same as --safe
+  DPCL_VERBOSE=1          Same as --verbose
+  DPCL_MODEL              Default model (default: deepseek-v4-pro[1m])
+  DPCL_HAIKU_MODEL        Haiku/flash model (default: deepseek-v4-flash)
+  DPCL_SUBAGENT_MODEL     Subagent model (default: deepseek-v4-flash)
+  DPCL_EFFORT             Effort level (default: max)
 
 CONFIG FILE
-  Path:  %APPDATA%\deepclaude\config
+  Path:  %APPDATA%\dpcl\config
   Format: KEY=VALUE (one per line)
 
 EXAMPLES
-  deepclaude                              # First run: enter key, then start
-  deepclaude "refactor this module"       # Pass a prompt to Claude Code
-  deepclaude --safe "rm -rf ./build"      # Run with permission prompts enabled
-  deepclaude --dry-run --verbose          # Preview what will be set
-  deepclaude config sk-xxx                # Set key without interactive prompt
-  deepclaude verify                       # Check if your stored key works
-  deepclaude show-config                  # See current settings
-  $env:DEEPCLAUDE_MODEL='other'; deepclaude  # Override model for one session
+  dpcl                              # First run: enter key, then start
+  dpcl "refactor this module"       # Pass a prompt to Claude Code
+  dpcl --safe "rm -rf ./build"      # Run with permission prompts enabled
+  dpcl --dry-run --verbose          # Preview what will be set
+  dpcl config sk-xxx                # Set key without interactive prompt
+  dpcl verify                       # Check if your stored key works
+  dpcl show-config                  # See current settings
+  $env:DPCL_MODEL='other'; dpcl  # Override model for one session
 '@
   exit 0
 }
@@ -210,19 +210,19 @@ EXAMPLES
 # --- show config -------------------------------------------------------------
 function Show-Config {
   $key = Get-Key
-  $savedSafe = if ($val = Read-Config 'DEEPCLAUDE_SAFE') { $val } else { '0' }
+  $savedSafe = if ($val = Read-Config 'DPCL_SAFE') { $val } else { '0' }
 
   Write-Host "Config file : $Script:ConfigFile"
   Write-Host "Config dir  : $Script:ConfigDir"
   Write-Host '---'
   if ($key) { Write-Host "API key     : (stored, $($key.Length) chars)" } else { Write-Host 'API key     : (not set)' }
-  Write-Host "Safe mode   : $(if ($env:DEEPCLAUDE_SAFE) { $env:DEEPCLAUDE_SAFE } else { $savedSafe })"
+  Write-Host "Safe mode   : $(if ($env:DPCL_SAFE) { $env:DPCL_SAFE } else { $savedSafe })"
   Write-Host '---'
   Write-Host 'Model overrides (from config or env):'
-  $model    = if ($env:DEEPCLAUDE_MODEL)        { $env:DEEPCLAUDE_MODEL }        else { $v = Read-Config 'DEEPCLAUDE_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
-  $haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)   { $env:DEEPCLAUDE_HAIKU_MODEL }   else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
-  $subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL){ $env:DEEPCLAUDE_SUBAGENT_MODEL} else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
-  $effort   = if ($env:DEEPCLAUDE_EFFORT)        { $env:DEEPCLAUDE_EFFORT }        else { $v = Read-Config 'DEEPCLAUDE_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
+  $model    = if ($env:DPCL_MODEL)        { $env:DPCL_MODEL }        else { $v = Read-Config 'DPCL_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
+  $haiku    = if ($env:DPCL_HAIKU_MODEL)   { $env:DPCL_HAIKU_MODEL }   else { $v = Read-Config 'DPCL_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
+  $subagent = if ($env:DPCL_SUBAGENT_MODEL){ $env:DPCL_SUBAGENT_MODEL} else { $v = Read-Config 'DPCL_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+  $effort   = if ($env:DPCL_EFFORT)        { $env:DPCL_EFFORT }        else { $v = Read-Config 'DPCL_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
 
   Write-Host "  MODEL        : $model"
   Write-Host "  HAIKU_MODEL  : $haiku"
@@ -235,14 +235,14 @@ function Show-Config {
 function Invoke-DryRun {
   param([array]$RemainingArgs)
   $key      = Get-Key
-  $safeMode = if ($env:DEEPCLAUDE_SAFE) { $env:DEEPCLAUDE_SAFE } else { $v = Read-Config 'DEEPCLAUDE_SAFE'; if ($v) { $v } else { '0' } }
-  $model    = if ($env:DEEPCLAUDE_MODEL)        { $env:DEEPCLAUDE_MODEL }        else { $v = Read-Config 'DEEPCLAUDE_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
-  $haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)   { $env:DEEPCLAUDE_HAIKU_MODEL }   else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
-  $subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL){ $env:DEEPCLAUDE_SUBAGENT_MODEL} else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
-  $effort   = if ($env:DEEPCLAUDE_EFFORT)        { $env:DEEPCLAUDE_EFFORT }        else { $v = Read-Config 'DEEPCLAUDE_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
+  $safeMode = if ($env:DPCL_SAFE) { $env:DPCL_SAFE } else { $v = Read-Config 'DPCL_SAFE'; if ($v) { $v } else { '0' } }
+  $model    = if ($env:DPCL_MODEL)        { $env:DPCL_MODEL }        else { $v = Read-Config 'DPCL_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
+  $haiku    = if ($env:DPCL_HAIKU_MODEL)   { $env:DPCL_HAIKU_MODEL }   else { $v = Read-Config 'DPCL_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
+  $subagent = if ($env:DPCL_SUBAGENT_MODEL){ $env:DPCL_SUBAGENT_MODEL} else { $v = Read-Config 'DPCL_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+  $effort   = if ($env:DPCL_EFFORT)        { $env:DPCL_EFFORT }        else { $v = Read-Config 'DPCL_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
 
   Write-Host '═══════════════════════════════════════════════'
-  Write-Host '  deepclaude dry-run'
+  Write-Host '  dpcl dry-run'
   Write-Host '═══════════════════════════════════════════════'
   Write-Host ''
   Write-Host 'Would set these environment variables:'
@@ -277,7 +277,7 @@ function Invoke-Subcommand {
   switch -Regex ($Cmd) {
     '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key)$' {
       if ($SubArgs.Count -ge 1) { Save-Key $SubArgs[0] } else { Invoke-Setup }
-      Write-Say "Done. Run 'deepclaude' to start."
+      Write-Say "Done. Run 'dpcl' to start."
       exit 0
     }
     '^(reset|--reset)$' {
@@ -290,13 +290,13 @@ function Invoke-Subcommand {
       exit 0
     }
     '^(update|--update|upgrade|--upgrade)$' {
-      Write-Say 'Updating deepclaude to the latest version...'
+      Write-Say 'Updating dpcl to the latest version...'
       irm 'https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1' | iex
       exit 0
     }
     '^(verify|--verify)$' {
       $key = Get-Key
-      if (-not $key) { Write-ErrorX "No stored key. Run 'deepclaude config' first." }
+      if (-not $key) { Write-ErrorX "No stored key. Run 'dpcl config' first." }
       Write-Say "Stored key: $($key.Substring(0, [Math]::Min(5, $key.Length)))...$($key.Substring($key.Length - [Math]::Min(4, $key.Length))) ($($key.Length) chars)"
       if (Test-KeyFormat $key) {
         Write-Say 'Format:  ✓ (starts with sk-)'
@@ -319,7 +319,7 @@ function Invoke-Subcommand {
 # MAIN
 # ============================================================================
 
-# Separate deepclaude flags from passthrough args
+# Separate dpcl flags from passthrough args
 $dryRun      = $false
 $passthrough = [System.Collections.ArrayList]::new()
 $i           = 0
@@ -329,10 +329,10 @@ while ($i -lt $args.Count) {
     '--help'    { Show-Help }
     'help'      { Show-Help }
     '-h'        { Show-Help }
-    '--version' { Write-Host "deepclaude v$Script:Version"; exit 0 }
+    '--version' { Write-Host "dpcl v$Script:Version"; exit 0 }
     '--dry-run' { $dryRun = $true; $i++ }
-    '--verbose' { $env:DEEPCLAUDE_VERBOSE = '1'; $i++ }
-    '--safe'    { $env:DEEPCLAUDE_SAFE = '1'; $i++ }
+    '--verbose' { $env:DPCL_VERBOSE = '1'; $i++ }
+    '--safe'    { $env:DPCL_SAFE = '1'; $i++ }
     '--'        { $i++; for (; $i -lt $args.Count; $i++) { $passthrough.Add($args[$i]) | Out-Null }; break }
     default {
       # Check if this is a subcommand
@@ -347,11 +347,11 @@ while ($i -lt $args.Count) {
   }
 }
 
-Write-DebugX "deepclaude v$Script:Version starting"
+Write-DebugX "dpcl v$Script:Version starting"
 Write-DebugX "CONFIG_FILE=$Script:ConfigFile"
 Write-DebugX "DRY_RUN=$dryRun"
-Write-DebugX "DEEPCLAUDE_SAFE=$($env:DEEPCLAUDE_SAFE ?? '0')"
-Write-DebugX "DEEPCLAUDE_VERBOSE=$($env:DEEPCLAUDE_VERBOSE ?? '0')"
+Write-DebugX "DPCL_SAFE=$($env:DPCL_SAFE ?? '0')"
+Write-DebugX "DPCL_VERBOSE=$($env:DPCL_VERBOSE ?? '0')"
 
 # --- resolve the key ---------------------------------------------------------
 $key = Get-Key
@@ -374,17 +374,17 @@ if (-not $key) {
 }
 
 if (-not $key) {
-  Write-ErrorX "No API key available. Run 'deepclaude config' to set one."
+  Write-ErrorX "No API key available. Run 'dpcl config' to set one."
 }
 
 Write-DebugX "Key resolved ($($key.Length) chars)"
 
 # --- resolve model overrides -------------------------------------------------
-$model    = if ($env:DEEPCLAUDE_MODEL)         { $env:DEEPCLAUDE_MODEL }         else { $v = Read-Config 'DEEPCLAUDE_MODEL';         if ($v) { $v } else { $Script:DefaultModel } }
-$haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)    { $env:DEEPCLAUDE_HAIKU_MODEL }    else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';    if ($v) { $v } else { $Script:DefaultHaikuModel } }
-$subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL) { $env:DEEPCLAUDE_SUBAGENT_MODEL } else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
-$effort   = if ($env:DEEPCLAUDE_EFFORT)         { $env:DEEPCLAUDE_EFFORT }         else { $v = Read-Config 'DEEPCLAUDE_EFFORT';         if ($v) { $v } else { $Script:DefaultEffort } }
-$safeMode = if ($env:DEEPCLAUDE_SAFE)           { $env:DEEPCLAUDE_SAFE }           else { $v = Read-Config 'DEEPCLAUDE_SAFE';           if ($v) { $v } else { '0' } }
+$model    = if ($env:DPCL_MODEL)         { $env:DPCL_MODEL }         else { $v = Read-Config 'DPCL_MODEL';         if ($v) { $v } else { $Script:DefaultModel } }
+$haiku    = if ($env:DPCL_HAIKU_MODEL)    { $env:DPCL_HAIKU_MODEL }    else { $v = Read-Config 'DPCL_HAIKU_MODEL';    if ($v) { $v } else { $Script:DefaultHaikuModel } }
+$subagent = if ($env:DPCL_SUBAGENT_MODEL) { $env:DPCL_SUBAGENT_MODEL } else { $v = Read-Config 'DPCL_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+$effort   = if ($env:DPCL_EFFORT)         { $env:DPCL_EFFORT }         else { $v = Read-Config 'DPCL_EFFORT';         if ($v) { $v } else { $Script:DefaultEffort } }
+$safeMode = if ($env:DPCL_SAFE)           { $env:DPCL_SAFE }           else { $v = Read-Config 'DPCL_SAFE';           if ($v) { $v } else { '0' } }
 
 Write-DebugX "MODEL=$model"
 Write-DebugX "HAIKU_MODEL=$haiku"

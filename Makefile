@@ -7,7 +7,7 @@ lint:
 ifndef SHELLCHECK
 	$(error "shellcheck not found. Install: https://github.com/koalaman/shellcheck")
 endif
-	$(SHELLCHECK) deepclaude install.sh
+	$(SHELLCHECK) dpcl install.sh
 
 # --- Tests -------------------------------------------------------------------
 BATS := $(shell command -v bats 2>/dev/null)
@@ -28,17 +28,17 @@ clean:
 
 # --- Install (local dev) -----------------------------------------------------
 install:
-	cp deepclaude ~/.local/bin/deepclaude
-	chmod +x ~/.local/bin/deepclaude
-	@echo "Installed to ~/.local/bin/deepclaude"
+	cp dpcl ~/.local/bin/dpcl
+	chmod +x ~/.local/bin/dpcl
+	@echo "Installed to ~/.local/bin/dpcl"
 
 # --- Shell completions (local dev) -------------------------------------------
-completions: completions/deepclaude.bash completions/deepclaude.zsh completions/deepclaude.fish
+completions: completions/dpcl.bash completions/dpcl.zsh completions/dpcl.fish
 	@echo "Completions generated."
 
 # --- Version bump ------------------------------------------------------------
 bump:
 	@read -p "New version (e.g. 1.1.0): " v; \
-	sed -i "s/^VERSION=.*/VERSION=\"$$v\"/" deepclaude; \
-	sed -i "s/Version\s*=\s*'.*'/Version      = '$$v'/" deepclaude.ps1; \
+	sed -i "s/^VERSION=.*/VERSION=\"$$v\"/" dpcl; \
+	sed -i "s/Version\s*=\s*'.*'/Version      = '$$v'/" dpcl.ps1; \
 	echo "Version bumped to $$v"

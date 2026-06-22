@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'deepclaude'
-      - 'deepclaude.ps1'
+      - 'dpcl'
+      - 'dpcl.ps1'
       - 'install.sh'
       - 'install.ps1'
       - 'tests/**'
@@ -24,7 +24,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: '.'
-          additional_files: 'deepclaude install.sh'
+          additional_files: 'dpcl install.sh'
 
   # --- PowerShell Script Analyzer --------------------------------------------
   lint-powershell:
@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          Invoke-ScriptAnalyzer -Path deepclaude.ps1,install.ps1 -Recurse
+          Invoke-ScriptAnalyzer -Path dpcl.ps1,install.ps1 -Recurse
 
   # --- BATS tests (Bash) ------------------------------------------------------
   test-bash:
@@ -70,8 +70,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Smoke: --help
-        run: bash deepclaude --help
+        run: bash dpcl --help
       - name: Smoke: --version
-        run: bash deepclaude --version
+        run: bash dpcl --version
       - name: Smoke: --dry-run (no key set)
-        run: bash deepclaude --dry-run --verbose
+        run: bash dpcl --dry-run --verbose

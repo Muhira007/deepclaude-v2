@@ -1,22 +1,22 @@
 #!/usr/bin/env bats
 #
-# Tests for deepclaude
+# Tests for dpcl
 # Run: bats tests/
 #
 
 setup() {
   # Isolate tests from real config
   export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/.config"
-  export DEEPCLAUDE_VERBOSE=0
+  export DPCL_VERBOSE=0
   export DEEPSEEK_API_KEY=""
-  export DEEPCLAUDE_SAFE=""
-  export DEEPCLAUDE_MODEL=""
-  export DEEPCLAUDE_HAIKU_MODEL=""
-  export DEEPCLAUDE_SUBAGENT_MODEL=""
-  export DEEPCLAUDE_EFFORT=""
+  export DPCL_SAFE=""
+  export DPCL_MODEL=""
+  export DPCL_HAIKU_MODEL=""
+  export DPCL_SUBAGENT_MODEL=""
+  export DPCL_EFFORT=""
 
   # Path to the script under test
-  DEEPCLAUDE="${BATS_TEST_DIRNAME}/../deepclaude"
+  DPCL="${BATS_TEST_DIRNAME}/../dpcl"
 }
 
 # Prevent any actual `claude` execution during tests
@@ -38,38 +38,38 @@ STUB
 # Basic flags
 # ============================================================================
 
-@test "deepclaude --version prints version" {
-  run bash "$DEEPCLAUDE" --version
+@test "dpcl --version prints version" {
+  run bash "$DPCL" --version
   [ "$status" -eq 0 ]
-  [[ "$output" =~ deepclaude\ v[0-9]+\.[0-9]+\.[0-9]+ ]]
+  [[ "$output" =~ dpcl\ v[0-9]+\.[0-9]+\.[0-9]+ ]]
 }
 
-@test "deepclaude --help prints usage" {
-  run bash "$DEEPCLAUDE" --help
+@test "dpcl --help prints usage" {
+  run bash "$DPCL" --help
   [ "$status" -eq 0 ]
-  [[ "$output" =~ deepclaude ]]
+  [[ "$output" =~ dpcl ]]
   [[ "$output" =~ USAGE ]]
   [[ "$output" =~ EXAMPLES ]]
 }
 
-@test "deepclaude help also works" {
-  run bash "$DEEPCLAUDE" help
+@test "dpcl help also works" {
+  run bash "$DPCL" help
   [ "$status" -eq 0 ]
-  [[ "$output" =~ deepclaude ]]
+  [[ "$output" =~ dpcl ]]
 }
 
-@test "deepclaude --dry-run without key prints information" {
+@test "dpcl --dry-run without key prints information" {
   stub_claude
-  run bash "$DEEPCLAUDE" --dry-run
+  run bash "$DPCL" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" =~ dry-run ]]
   [[ "$output" =~ ANTHROPIC_BASE_URL ]]
   [[ "$output" =~ deepseek ]]
 }
 
-@test "deepclaude --dry-run --verbose shows debug info" {
+@test "dpcl --dry-run --verbose shows debug info" {
   stub_claude
-  run bash "$DEEPCLAUDE" --dry-run --verbose
+  run bash "$DPCL" --dry-run --verbose
   [ "$status" -eq 0 ]
   # --dry-run exits before key check, but --verbose should be set early
   # In dry-run mode, debug lines about model resolution appear before the dry-run output
@@ -81,41 +81,41 @@ STUB
 # Key management
 # ============================================================================
 
-@test "deepclaude config saves key to config file" {
+@test "dpcl config saves key to config file" {
   stub_claude
-  run bash "$DEEPCLAUDE" config "sk-test12345"
+  run bash "$DPCL" config "sk-test12345"
   [ "$status" -eq 0 ]
   [[ "$output" =~ saved ]]
   # Verify config file was created
-  [ -f "$XDG_CONFIG_HOME/deepclaude/config" ]
-  grep -q "DEEPSEEK_API_KEY=sk-test12345" "$XDG_CONFIG_HOME/deepclaude/config"
+  [ -f "$XDG_CONFIG_HOME/dpcl/config" ]
+  grep -q "DEEPSEEK_API_KEY=sk-test12345" "$XDG_CONFIG_HOME/dpcl/config"
 }
 
-@test "deepclaude config with empty key is rejected" {
-  run bash "$DEEPCLAUDE" config ""
+@test "dpcl config with empty key is rejected" {
+  run bash "$DPCL" config ""
   [ "$status" -ne 0 ]
   [[ "$output" =~ empty ]]
 }
 
-@test "deepclaude reset removes stored key" {
+@test "dpcl reset removes stored key" {
   stub_claude
   # Save a key first
-  bash "$DEEPCLAUDE" config "sk-test12345"
+  bash "$DPCL" config "sk-test12345"
   # Then reset
-  run bash "$DEEPCLAUDE" reset
+  run bash "$DPCL" reset
   [ "$status" -eq 0 ]
   [[ "$output" =~ removed ]]
-  [ ! -f "$XDG_CONFIG_HOME/deepclaude/config" ]
+  [ ! -f "$XDG_CONFIG_HOME/dpcl/config" ]
 }
 
-@test "deepclaude reset when no key is stored" {
-  run bash "$DEEPCLAUDE" reset
+@test "dpcl reset when no key is stored" {
+  run bash "$DPCL" reset
   [ "$status" -eq 0 ]
   [[ "$output" =~ (removed|No stored key) ]]
 }
 
-@test "deepclaude verify with no stored key errors" {
-  run bash "$DEEPCLAUDE" verify
+@test "dpcl verify with no stored key errors" {
+  run bash "$DPCL" verify
   [ "$status" -ne 0 ]
   [[ "$output" =~ (No stored key|ERROR) ]]
 }
@@ -128,7 +128,7 @@ STUB
   run bash -c '
     source "$1"
     validate_key_format "sk-abc123def456"
-  ' _ "$DEEPCLAUDE"
+  ' _ "$DPCL"
   [ "$status" -eq 0 ]
 }
 
@@ -136,7 +136,7 @@ STUB
   run bash -c '
     source "$1"
     validate_key_format "not-a-valid-key"
-  ' _ "$DEEPCLAUDE"
+  ' _ "$DPCL"
   [ "$status" -eq 1 ]
 }
 
@@ -150,7 +150,7 @@ STUB
     write_config "TEST_KEY" "test-value-123"
     result=$(read_config "TEST_KEY")
     [ "$result" = "test-value-123" ] && echo "PASS" || echo "FAIL: got $result"
-  ' _ "$DEEPCLAUDE"
+  ' _ "$DPCL"
   [ "$status" -eq 0 ]
   [[ "$output" =~ PASS ]]
 }
@@ -159,10 +159,10 @@ STUB
 # Show config
 # ============================================================================
 
-@test "deepclaude show-config displays configuration" {
+@test "dpcl show-config displays configuration" {
   stub_claude
-  bash "$DEEPCLAUDE" config "sk-test12345" > /dev/null 2>&1
-  run bash "$DEEPCLAUDE" show-config
+  bash "$DPCL" config "sk-test12345" > /dev/null 2>&1
+  run bash "$DPCL" show-config
   [ "$status" -eq 0 ]
   [[ "$output" =~ Config\ file ]]
   [[ "$output" =~ stored ]]
@@ -175,22 +175,22 @@ STUB
 @test "DEEPSEEK_API_KEY from env is auto-saved" {
   stub_claude
   export DEEPSEEK_API_KEY="sk-envtest123"
-  run bash "$DEEPCLAUDE" --dry-run
+  run bash "$DPCL" --dry-run
   [ "$status" -eq 0 ]
   # Should have saved the key
-  [ -f "$XDG_CONFIG_HOME/deepclaude/config" ]
-  grep -q "DEEPSEEK_API_KEY=sk-envtest123" "$XDG_CONFIG_HOME/deepclaude/config"
+  [ -f "$XDG_CONFIG_HOME/dpcl/config" ]
+  grep -q "DEEPSEEK_API_KEY=sk-envtest123" "$XDG_CONFIG_HOME/dpcl/config"
 }
 
 # ============================================================================
 # Model overrides
 # ============================================================================
 
-@test "DEEPCLAUDE_MODEL env var overrides default model" {
+@test "DPCL_MODEL env var overrides default model" {
   stub_claude
   export DEEPSEEK_API_KEY="sk-test12345"
-  export DEEPCLAUDE_MODEL="custom-model-v2"
-  run bash "$DEEPCLAUDE" --dry-run
+  export DPCL_MODEL="custom-model-v2"
+  run bash "$DPCL" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" =~ custom-model-v2 ]]
 }
@@ -199,10 +199,10 @@ STUB
 # Safe mode
 # ============================================================================
 
-@test "deepclaude --safe sets safe mode" {
+@test "dpcl --safe sets safe mode" {
   stub_claude
   export DEEPSEEK_API_KEY="sk-test12345"
-  run bash "$DEEPCLAUDE" --safe --dry-run
+  run bash "$DPCL" --safe --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" =~ Safe\ mode ]]
   [[ ! "$output" =~ dangerously-skip-permissions ]]
@@ -212,10 +212,10 @@ STUB
 # Error: missing claude binary
 # ============================================================================
 
-@test "deepclaude errors when claude is not installed" {
+@test "dpcl errors when claude is not installed" {
   # Ensure claude is NOT on PATH
   export DEEPSEEK_API_KEY="sk-test12345"
-  run bash "$DEEPCLAUDE" -- --version
+  run bash "$DPCL" -- --version
   [ "$status" -eq 1 ]
   [[ "$output" =~ (claude CLI not found|not found) ]]
 }
@@ -224,20 +224,20 @@ STUB
 # Subcommand aliases
 # ============================================================================
 
-@test "deepclaude set-key is an alias for config" {
+@test "dpcl set-key is an alias for config" {
   stub_claude
-  run bash "$DEEPCLAUDE" set-key "sk-aliastest"
+  run bash "$DPCL" set-key "sk-aliastest"
   [ "$status" -eq 0 ]
   [[ "$output" =~ saved ]]
 }
 
-@test "deepclaude change-key is an alias for config" {
+@test "dpcl change-key is an alias for config" {
   stub_claude
-  bash "$DEEPCLAUDE" config "sk-original" > /dev/null 2>&1
-  run bash "$DEEPCLAUDE" change-key "sk-changed"
+  bash "$DPCL" config "sk-original" > /dev/null 2>&1
+  run bash "$DPCL" change-key "sk-changed"
   [ "$status" -eq 0 ]
   [[ "$output" =~ saved ]]
-  grep -q "DEEPSEEK_API_KEY=sk-changed" "$XDG_CONFIG_HOME/deepclaude/config"
+  grep -q "DEEPSEEK_API_KEY=sk-changed" "$XDG_CONFIG_HOME/dpcl/config"
 }
 
 # ============================================================================
@@ -249,7 +249,7 @@ STUB
     source "$1"
     result=$(trim "  hello  ")
     [ "$result" = "hello" ] && echo "PASS" || echo "FAIL: got [$result]"
-  ' _ "$DEEPCLAUDE"
+  ' _ "$DPCL"
   [ "$status" -eq 0 ]
   [[ "$output" =~ PASS ]]
 }

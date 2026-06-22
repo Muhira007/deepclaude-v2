@@ -1,4 +1,4 @@
-# 🔀 DeepClaude
+# 🔀 Dpcl
 
 > Jalankan [Claude Code](https://docs.claude.com/en/docs/claude-code) menggunakan
 > [DeepSeek](https://platform.deepseek.com) API yang kompatibel dengan protokol Anthropic.
@@ -43,7 +43,7 @@ berformat Anthropic Messages API, memprosesnya dengan model DeepSeek, dan
 mengembalikan response dalam format yang sama persis seperti yang diharapkan
 Claude Code.
 
-**DeepClaude** adalah **wrapper script** yang menjembatani keduanya dengan cara:
+**Dpcl** adalah **wrapper script** yang menjembatani keduanya dengan cara:
 
 1. 🔑 **Mengambil** DeepSeek API key (dari config file, env var, atau prompt interaktif)
 2. 🌐 **Mengeset** `ANTHROPIC_BASE_URL` ke endpoint DeepSeek
@@ -53,7 +53,7 @@ Claude Code.
 ```
 ┌─────────────┐     Environment Variables      ┌──────────────────────┐
 │             │────────────────────────────────▶│                      │
-│  deepclaude │  ANTHROPIC_BASE_URL             │  claude CLI binary   │
+│  dpcl │  ANTHROPIC_BASE_URL             │  claude CLI binary   │
 │  (wrapper)  │  ANTHROPIC_AUTH_TOKEN           │  (dari Anthropic)    │
 │             │  ANTHROPIC_MODEL                │                      │
 └─────────────┘  ANTHROPIC_DEFAULT_*_MODEL      └──────────┬───────────┘
@@ -78,7 +78,7 @@ Claude Code.
 |----------|-------|
 | **Claude Code CLI** | Binary resmi Anthropic — mengirim request ke API, mengelola tool calls, menampilkan UI terminal |
 | **DeepSeek API** | Menyediakan endpoint `/anthropic` yang menerima dan merespon dalam format Anthropic Messages API |
-| **DeepClaude Script** | Shell script tipis yang menyetel env vars sebelum menjalankan `claude` |
+| **Dpcl Script** | Shell script tipis yang menyetel env vars sebelum menjalankan `claude` |
 
 Claude Code **tidak tahu** bahwa ia sedang berbicara dengan DeepSeek, bukan
 Anthropic. Dari sudut pandang Claude Code, ia hanya melihat base URL yang
@@ -93,8 +93,8 @@ berbeda — protokolnya tetap sama.
 ```mermaid
 graph TB
     subgraph "Komputer Pengguna"
-        A[User / Terminal] -->|mengetik perintah| B[deepclaude script]
-        B -->|1. baca/simpan| C[("~/.config/deepclaude/config<br/>DEEPSEEK_API_KEY")]
+        A[User / Terminal] -->|mengetik perintah| B[dpcl script]
+        B -->|1. baca/simpan| C[("~/.config/dpcl/config<br/>DEEPSEEK_API_KEY")]
         B -->|2. export env vars| D[Environment Variables]
         D -->|3. exec| E[claude CLI binary]
         E -->|4. HTTP POST<br/>Anthropic Messages API| F[Internet]
@@ -119,13 +119,13 @@ graph TB
 ```mermaid
 sequenceDiagram
     actor U as User
-    participant DC as deepclaude (script)
-    participant CF as Config File<br/>~/.config/deepclaude/config
+    participant DC as dpcl (script)
+    participant CF as Config File<br/>~/.config/dpcl/config
     participant ENV as Environment
     participant CC as claude CLI
     participant DS as DeepSeek API<br/>api.deepseek.com/anthropic
 
-    U->>DC: deepclaude "tulis kalkulator"
+    U->>DC: dpcl "tulis kalkulator"
     
     alt API Key sudah tersimpan
         DC->>CF: baca DEEPSEEK_API_KEY
@@ -162,7 +162,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A([Mulai: deepclaude]) --> B{Apa subcommand?}
+    A([Mulai: dpcl]) --> B{Apa subcommand?}
 
     B -->|config KEY| C[Simpan key ke config file]
     C --> Z([Selesai])
@@ -209,11 +209,11 @@ Prioritas pencarian API key (berurutan):
 ```mermaid
 flowchart LR
     subgraph "Prioritas 1 (Tertinggi)"
-        A["deepclaude config SK-XXX<br/>(disimpan inline)"]
+        A["dpcl config SK-XXX<br/>(disimpan inline)"]
     end
 
     subgraph "Prioritas 2"
-        B["Config file<br/>~/.config/deepclaude/config"]
+        B["Config file<br/>~/.config/dpcl/config"]
     end
 
     subgraph "Prioritas 3"
@@ -231,8 +231,8 @@ flowchart LR
 
 | Prioritas | Sumber | Keterangan |
 |-----------|--------|------------|
-| 1 | `deepclaude config <KEY>` | Diset langsung via CLI, tanpa prompt |
-| 2 | `~/.config/deepclaude/config` | Key yang disimpan dari run sebelumnya |
+| 1 | `dpcl config <KEY>` | Diset langsung via CLI, tanpa prompt |
+| 2 | `~/.config/dpcl/config` | Key yang disimpan dari run sebelumnya |
 | 3 | `$DEEPSEEK_API_KEY` | Environment variable — lalu disimpan otomatis |
 | 4 | Prompt interaktif | Ditanyakan jika semua sumber di atas kosong |
 
@@ -240,7 +240,7 @@ flowchart LR
 
 ## 🌍 Environment Variables
 
-Berikut adalah semua env vars yang di-set oleh DeepClaude sebelum menjalankan `claude`:
+Berikut adalah semua env vars yang di-set oleh Dpcl sebelum menjalankan `claude`:
 
 | Variable | Nilai | Fungsi |
 |----------|-------|--------|
@@ -263,7 +263,7 @@ graph LR
         A3[Claude Haiku 4<br/>Cepat, ringan]
     end
 
-    subgraph "Pemetaan deepclaude"
+    subgraph "Pemetaan dpcl"
         B1[ANTHROPIC_DEFAULT_OPUS_MODEL]
         B2[ANTHROPIC_DEFAULT_SONNET_MODEL]
         B3[ANTHROPIC_DEFAULT_HAIKU_MODEL]
@@ -287,14 +287,14 @@ graph LR
 
 ## 🎮 Flags & Subcommands Lengkap
 
-### Flags (deepclaude sendiri)
+### Flags (dpcl sendiri)
 
 | Flag | Deskripsi |
 |------|-----------|
-| `--help`, `help`, `-h` | Tampilkan bantuan deepclaude |
-| `--version` | Tampilkan versi deepclaude |
+| `--help`, `help`, `-h` | Tampilkan bantuan dpcl |
+| `--version` | Tampilkan versi dpcl |
 | `--dry-run` | Cetak apa yang akan dieksekusi, tanpa menjalankan Claude Code |
-| `--verbose` | Aktifkan mode debug (setara dengan `DEEPCLAUDE_VERBOSE=1`) |
+| `--verbose` | Aktifkan mode debug (setara dengan `DPCL_VERBOSE=1`) |
 | `--safe` | Jalankan **tanpa** `--dangerously-skip-permissions` |
 | `--` | Semua argumen setelah `--` diteruskan langsung ke `claude` |
 
@@ -312,20 +312,20 @@ graph LR
 ### Contoh Penggunaan Flags
 
 ```bash
-deepclaude --help                          # Lihat bantuan deepclaude
-deepclaude --version                       # Lihat versi
-deepclaude --dry-run                       # Preview tanpa eksekusi
-deepclaude --dry-run --verbose             # Preview dengan info debug
-deepclaude --safe "hapus file lama"        # Jalankan dengan permission prompt
-deepclaude -- --help                       # Teruskan --help ke claude (bukan deepclaude)
-deepclaude --safe --verbose "prompt"       # Gabungkan beberapa flag
+dpcl --help                          # Lihat bantuan dpcl
+dpcl --version                       # Lihat versi
+dpcl --dry-run                       # Preview tanpa eksekusi
+dpcl --dry-run --verbose             # Preview dengan info debug
+dpcl --safe "hapus file lama"        # Jalankan dengan permission prompt
+dpcl -- --help                       # Teruskan --help ke claude (bukan dpcl)
+dpcl --safe --verbose "prompt"       # Gabungkan beberapa flag
 ```
 
 ---
 
 ## 🌍 Environment Variables
 
-### Semua variabel yang di-set oleh DeepClaude
+### Semua variabel yang di-set oleh Dpcl
 
 | Variable | Nilai Default | Fungsi |
 |----------|--------------|--------|
@@ -338,17 +338,17 @@ deepclaude --safe --verbose "prompt"       # Gabungkan beberapa flag
 | `CLAUDE_CODE_SUBAGENT_MODEL` | `deepseek-v4-flash` | Model untuk sub-agent |
 | `CLAUDE_CODE_EFFORT_LEVEL` | `max` | Effort reasoning |
 
-### Variabel yang dibaca oleh DeepClaude (bisa di-set user)
+### Variabel yang dibaca oleh Dpcl (bisa di-set user)
 
 | Variable | Fungsi |
 |----------|--------|
 | `DEEPSEEK_API_KEY` | API key DeepSeek (auto-disimpan saat pertama digunakan) |
-| `DEEPCLAUDE_MODEL` | Override model default |
-| `DEEPCLAUDE_HAIKU_MODEL` | Override model Haiku/flash |
-| `DEEPCLAUDE_SUBAGENT_MODEL` | Override model sub-agent |
-| `DEEPCLAUDE_EFFORT` | Override effort level |
-| `DEEPCLAUDE_SAFE=1` | Sama dengan flag `--safe` |
-| `DEEPCLAUDE_VERBOSE=1` | Sama dengan flag `--verbose` |
+| `DPCL_MODEL` | Override model default |
+| `DPCL_HAIKU_MODEL` | Override model Haiku/flash |
+| `DPCL_SUBAGENT_MODEL` | Override model sub-agent |
+| `DPCL_EFFORT` | Override effort level |
+| `DPCL_SAFE=1` | Sama dengan flag `--safe` |
+| `DPCL_VERBOSE=1` | Sama dengan flag `--verbose` |
 
 ---
 
@@ -363,27 +363,27 @@ Environment Variable > Config File > Default Bawaan
 
 ### Via Config File
 
-Edit `~/.config/deepclaude/config`:
+Edit `~/.config/dpcl/config`:
 
 ```ini
 DEEPSEEK_API_KEY=sk-xxxxxxxx
-DEEPCLAUDE_MODEL=deepseek-v4-pro[1m]
-DEEPCLAUDE_HAIKU_MODEL=deepseek-v4-flash
-DEEPCLAUDE_SUBAGENT_MODEL=deepseek-v4-flash
-DEEPCLAUDE_EFFORT=high
-DEEPCLAUDE_SAFE=0
+DPCL_MODEL=deepseek-v4-pro[1m]
+DPCL_HAIKU_MODEL=deepseek-v4-flash
+DPCL_SUBAGENT_MODEL=deepseek-v4-flash
+DPCL_EFFORT=high
+DPCL_SAFE=0
 ```
 
 ### Via Environment Variable (per-sesi)
 
 ```bash
 # Override model utama untuk satu sesi
-DEEPCLAUDE_MODEL="deepseek-v4-experimental" deepclaude "tulis kode"
+DPCL_MODEL="deepseek-v4-experimental" dpcl "tulis kode"
 
 # Override beberapa sekaligus
-DEEPCLAUDE_HAIKU_MODEL="deepseek-v4-flash" \
-DEEPCLAUDE_EFFORT="medium" \
-deepclaude --safe "review dokumentasi"
+DPCL_HAIKU_MODEL="deepseek-v4-flash" \
+DPCL_EFFORT="medium" \
+dpcl --safe "review dokumentasi"
 ```
 
 ### Model yang tersedia di DeepSeek
@@ -400,7 +400,7 @@ deepclaude --safe "review dokumentasi"
 
 ## 🛡️ Safe Mode
 
-Secara default, DeepClaude menjalankan Claude Code dengan flag
+Secara default, Dpcl menjalankan Claude Code dengan flag
 `--dangerously-skip-permissions` — artinya tool call berjalan **tanpa konfirmasi**.
 Ini nyaman tapi berisiko di direktori yang tidak kamu percayai.
 
@@ -411,13 +411,13 @@ file edit) akan meminta persetujuanmu terlebih dahulu.
 
 ```bash
 # Opsi 1: Flag --safe
-deepclaude --safe "hapus semua file cache"
+dpcl --safe "hapus semua file cache"
 
 # Opsi 2: Environment variable
-DEEPCLAUDE_SAFE=1 deepclaude
+DPCL_SAFE=1 dpcl
 
 # Opsi 3: Config file (permanen)
-echo "DEEPCLAUDE_SAFE=1" >> ~/.config/deepclaude/config
+echo "DPCL_SAFE=1" >> ~/.config/dpcl/config
 ```
 
 ### Kapan menggunakan Safe Mode?
@@ -428,7 +428,7 @@ echo "DEEPCLAUDE_SAFE=1" >> ~/.config/deepclaude/config
 | Direktori tidak dikenal | **Safe Mode** |
 | Operasi destruktif (rm, drop table) | **Safe Mode** |
 | CI/CD pipeline | Non-safe (pakai env var) |
-| Pertama kali mencoba deepclaude | **Safe Mode** |
+| Pertama kali mencoba dpcl | **Safe Mode** |
 
 ---
 
@@ -443,7 +443,7 @@ echo "DEEPCLAUDE_SAFE=1" >> ~/.config/deepclaude/config
 curl -fsSL https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.sh | bash
 ```
 
-Menginstal script `deepclaude` ke `~/.local/bin`. Jika direktori tersebut belum
+Menginstal script `dpcl` ke `~/.local/bin`. Jika direktori tersebut belum
 ada di `PATH`, installer akan memberi tahu baris yang perlu ditambahkan ke
 `~/.bashrc` atau `~/.zshrc`.
 
@@ -463,15 +463,15 @@ irm https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1 |
 Jalankan pertama kali — akan diminta DeepSeek API key (input tersembunyi):
 
 ```bash
-deepclaude
+dpcl
 ```
 
 Setelah itu, semua argumen diteruskan langsung ke `claude`:
 
 ```bash
-deepclaude "jelaskan cara kerja Docker Compose"
-deepclaude --help
-deepclaude "refactor module auth menjadi lebih clean"
+dpcl "jelaskan cara kerja Docker Compose"
+dpcl --help
+dpcl "refactor module auth menjadi lebih clean"
 ```
 
 ### Cara mendapatkan DeepSeek API Key
@@ -480,16 +480,16 @@ deepclaude "refactor module auth menjadi lebih clean"
 2. Login atau daftar akun
 3. Klik **"Create new API key"**
 4. Salin key-nya (format: `sk-xxxxxxxxxxxxxxxx`)
-5. Masukkan saat prompt `deepclaude` pertama kali
+5. Masukkan saat prompt `dpcl` pertama kali
 
 ---
 
 ## 🔧 Manajemen Kunci API
 
 ```bash
-deepclaude change-key        # ganti kunci tersimpan (prompt interaktif)
-deepclaude change-key SK-XXX # ganti kunci langsung tanpa prompt
-deepclaude reset             # hapus kunci tersimpan
+dpcl change-key        # ganti kunci tersimpan (prompt interaktif)
+dpcl change-key SK-XXX # ganti kunci langsung tanpa prompt
+dpcl reset             # hapus kunci tersimpan
 ```
 
 Alias yang diterima: `config`, `set-key`, `change` — semuanya sama dengan `change-key`.
@@ -498,8 +498,8 @@ Alias yang diterima: `config`, `set-key`, `change` — semuanya sama dengan `cha
 
 | Platform      | Path                                     | Permission        |
 |---------------|------------------------------------------|-------------------|
-| macOS / Linux | `~/.config/deepclaude/config`            | `600` (owner only)|
-| Windows       | `%APPDATA%\deepclaude\config`            | ACL: user only    |
+| macOS / Linux | `~/.config/dpcl/config`            | `600` (owner only)|
+| Windows       | `%APPDATA%\dpcl\config`            | ACL: user only    |
 
 > ⚠️ Key disimpan dalam **plaintext** di mesin lokal. Siapa pun dengan akses ke
 > akun user kamu bisa membacanya. Perlakukan seperti kredensial lokal lainnya.
@@ -511,7 +511,7 @@ Alias yang diterima: `config`, `set-key`, `change` — semuanya sama dengan `cha
 ### Update ke versi terbaru
 
 ```bash
-deepclaude update
+dpcl update
 ```
 
 ### Uninstall
@@ -519,15 +519,15 @@ deepclaude update
 **macOS / Linux:**
 
 ```bash
-rm ~/.local/bin/deepclaude
-rm -rf ~/.config/deepclaude
+rm ~/.local/bin/dpcl
+rm -rf ~/.config/dpcl
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\deepclaude"
-Remove-Item -Recurse -Force "$env:APPDATA\deepclaude"
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\dpcl"
+Remove-Item -Recurse -Force "$env:APPDATA\dpcl"
 ```
 
 ---
@@ -548,7 +548,7 @@ Remove-Item -Recurse -Force "$env:APPDATA\deepclaude"
 
 ```mermaid
 mindmap
-  root((DeepClaude))
+  root((Dpcl))
     Masukan
       DeepSeek API Key
         Config file
@@ -578,9 +578,9 @@ mindmap
 ### Struktur Proyek
 
 ```
-deepclaude/
-├── deepclaude              # Script Bash utama (Linux/macOS)
-├── deepclaude.ps1          # Script PowerShell (Windows)
+dpcl/
+├── dpcl              # Script Bash utama (Linux/macOS)
+├── dpcl.ps1          # Script PowerShell (Windows)
 ├── install.sh              # Installer Bash
 ├── install.ps1             # Installer PowerShell
 ├── completions/            # Shell completions (bash/zsh/fish)
