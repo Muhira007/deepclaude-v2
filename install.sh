@@ -4,36 +4,68 @@
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.sh | bash
 #
+# Options:
+#   VERSION=v1.0.0  curl ... | VERSION=v1.0.0 bash     # Pin a version
+#   DEST=/usr/local  curl ... | DEST=/usr/local bash    # Custom install dir
+#
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/RafiulM/deepclaude/main"
+REPO="https://raw.githubusercontent.com/RafiulM/deepclaude"
+VERSION="${VERSION:-main}"
 CMD_NAME="deepclaude"
-BIN_DIR="${DEEPCLAUDE_BIN_DIR:-$HOME/.local/bin}"
+BIN_DIR="${DEST:-$HOME/.local/bin}"
+REPO_URL="${REPO}/${VERSION}"
 
+# --- helpers -----------------------------------------------------------------
+say()   { printf '%s\n' "$*" >&2; }
+die()   { say "ERROR: $*"; exit 1; }
+
+# --- pre-flight checks -------------------------------------------------------
+if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+  die "Need curl or wget to download deepclaude."
+fi
+
+# --- download function -------------------------------------------------------
+download() {
+  local url="$1" dest="$2"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" -o "$dest" || die "Download failed: $url"
+  else
+    wget -qO "$dest" "$url" || die "Download failed: $url"
+  fi
+}
+
+# --- install -----------------------------------------------------------------
 mkdir -p "$BIN_DIR"
 
-echo "Installing $CMD_NAME to $BIN_DIR ..."
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$REPO_RAW/$CMD_NAME" -o "$BIN_DIR/$CMD_NAME"
-elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$BIN_DIR/$CMD_NAME" "$REPO_RAW/$CMD_NAME"
-else
-  echo "Need curl or wget." >&2
-  exit 1
-fi
+say "Installing $CMD_NAME ($VERSION) to $BIN_DIR ..."
+download "$REPO_URL/$CMD_NAME" "$BIN_DIR/$CMD_NAME"
 chmod +x "$BIN_DIR/$CMD_NAME"
 
-echo "Installed: $BIN_DIR/$CMD_NAME"
+# --- checksum (informational) ------------------------------------------------
+# Download checksums if available (from tagged releases)
+CHECKSUM_URL="${REPO}/${VERSION}/checksums.txt"
+if command -v sha256sum >/dev/null 2>&1; then
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsSL --head "$CHECKSUM_URL" 2>/dev/null | grep -q '200 OK'; then
+      say "Checksums available at: $CHECKSUM_URL"
+      say "Verify with: curl -fsSL $CHECKSUM_URL | sha256sum -c --ignore-missing"
+    fi
+  fi
+fi
+
+# --- post-install ------------------------------------------------------------
+say "Installed: $BIN_DIR/$CMD_NAME"
 
 case ":$PATH:" in
   *":$BIN_DIR:"*)
-    echo "Ready. Run: $CMD_NAME"
+    say "Ready. Run: $CMD_NAME"
     ;;
   *)
-    echo
-    echo "NOTE: $BIN_DIR is not on your PATH."
-    echo "Add this to your shell profile (~/.bashrc or ~/.zshrc):"
-    echo "  export PATH=\"$BIN_DIR:\$PATH\""
-    echo "Then open a new terminal and run: $CMD_NAME"
+    say ""
+    say "NOTE: $BIN_DIR is not on your PATH."
+    say "Add this to your shell profile (~/.bashrc or ~/.zshrc):"
+    say "  export PATH=\"$BIN_DIR:\$PATH\""
+    say "Then open a new terminal and run: $CMD_NAME"
     ;;
 esac

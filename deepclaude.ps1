@@ -8,90 +8,364 @@
 
 $ErrorActionPreference = 'Stop'
 
-$ConfigDir  = Join-Path $env:APPDATA 'deepclaude'
-$ConfigFile = Join-Path $ConfigDir 'config'
+$Script:Version      = '1.0.0'
+$Script:ConfigDir    = Join-Path $env:APPDATA 'deepclaude'
+$Script:ConfigFile   = Join-Path $Script:ConfigDir 'config'
 
-function Save-Key([string]$Key) {
-  $Key = $Key.Trim()
-  if ([string]::IsNullOrEmpty($Key)) {
-    Write-Host 'Refusing to save an empty key.'
-    return
-  }
-  New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
-  Set-Content -Path $ConfigFile -Value ("DEEPSEEK_API_KEY=" + $Key) -Encoding ASCII
-  # Restrict the file to the current user only.
-  try {
-    $acl  = New-Object System.Security.AccessControl.FileSecurity
-    $acl.SetAccessRuleProtection($true, $false)
-    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-      "$env:USERDOMAIN\$env:USERNAME", 'FullControl', 'Allow')
-    $acl.AddAccessRule($rule)
-    Set-Acl -Path $ConfigFile -AclObject $acl
-  } catch { }
-  Write-Host "Key saved to $ConfigFile"
+# --- defaults ----------------------------------------------------------------
+$Script:DefaultModel       = 'deepseek-v4-pro[1m]'
+$Script:DefaultHaikuModel  = 'deepseek-v4-flash'
+$Script:DefaultSubagent    = 'deepseek-v4-flash'
+$Script:DefaultEffort      = 'max'
+
+# --- helpers -----------------------------------------------------------------
+function Write-Say   { param([string]$Msg) Write-Host $Msg }
+function Write-Warn  { param([string]$Msg) Write-Host "WARNING: $Msg" -ForegroundColor Yellow }
+function Write-ErrorX { param([string]$Msg) Write-Host "ERROR: $Msg" -ForegroundColor Red; exit 1 }
+function Write-DebugX {
+  param([string]$Msg)
+  if ($env:DEEPCLAUDE_VERBOSE -eq '1') { Write-Host "[DEBUG] $Msg" -ForegroundColor DarkGray }
 }
 
-function Get-Key {
-  if (-not (Test-Path $ConfigFile)) { return $null }
-  foreach ($line in Get-Content $ConfigFile) {
-    if ($line -like 'DEEPSEEK_API_KEY=*') {
-      return $line.Substring('DEEPSEEK_API_KEY='.Length)
-    }
+# --- config file I/O ---------------------------------------------------------
+function Read-Config {
+  param([string]$Key)
+  if (-not (Test-Path $Script:ConfigFile)) { return $null }
+  foreach ($line in Get-Content $Script:ConfigFile) {
+    if ($line -match "^\s*${Key}=(.*)$") { return $Matches[1] }
   }
   return $null
 }
 
+function Write-Config {
+  param([string]$Key, [string]$Value)
+  New-Item -ItemType Directory -Force -Path $Script:ConfigDir | Out-Null
+  $lines = @()
+  $found = $false
+  if (Test-Path $Script:ConfigFile) {
+    foreach ($line in Get-Content $Script:ConfigFile) {
+      if ($line -match "^\s*${Key}=") {
+        $lines += "${Key}=${Value}"
+        $found = $true
+      } else {
+        $lines += $line
+      }
+    }
+  }
+  if (-not $found) { $lines += "${Key}=${Value}" }
+  Set-Content -Path $Script:ConfigFile -Value $lines -Encoding ASCII
+  # Restrict to current user
+  try {
+    $acl = New-Object System.Security.AccessControl.FileSecurity
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      "$env:USERDOMAIN\$env:USERNAME", 'FullControl', 'Allow')
+    $acl.AddAccessRule($rule)
+    Set-Acl -Path $Script:ConfigFile -AclObject $acl
+  } catch {
+    Write-DebugX "Set-Acl failed (non-NTFS drive?): $_"
+  }
+}
+
+function Save-Key {
+  param([string]$Key)
+  $Key = $Key.Trim()
+  if ([string]::IsNullOrEmpty($Key)) {
+    Write-ErrorX 'Refusing to save an empty key.'
+  }
+  if (-not (Test-KeyFormat $Key)) {
+    Write-Warn "Key format looks unusual (expected 'sk-...' prefix)."
+    Write-Warn 'Saving anyway, but it may not work.'
+  }
+  Write-Config 'DEEPSEEK_API_KEY' $Key
+  Write-Say "Key saved to $Script:ConfigFile"
+}
+
+function Get-Key {
+  return Read-Config 'DEEPSEEK_API_KEY'
+}
+
+# --- key validation ----------------------------------------------------------
+function Test-KeyFormat {
+  param([string]$Key)
+  return ($Key -match '^sk-[a-zA-Z0-9]+')
+}
+
+function Test-KeyApi {
+  param([string]$Key)
+  Write-Say 'Verifying API key...'
+  try {
+    $resp = Invoke-WebRequest -Uri 'https://api.deepseek.com/v1/models' `
+      -Headers @{ Authorization = "Bearer $Key" } `
+      -Method Get `
+      -TimeoutSec 10 `
+      -SkipHttpErrorCheck `
+      -ErrorAction SilentlyContinue
+    if ($resp.StatusCode -eq 200) {
+      Write-Say '✓ API key is valid.'
+      return $true
+    } elseif ($resp.StatusCode -eq 401) {
+      Write-Warn '✗ API key is invalid or expired (HTTP 401).'
+      return $false
+    } elseif ($resp.StatusCode -eq 403) {
+      Write-Warn '✗ API key lacks permissions (HTTP 403).'
+      return $false
+    } else {
+      Write-Warn "Unexpected response (HTTP $($resp.StatusCode)). Key may still work."
+      return $true
+    }
+  } catch {
+    Write-Warn 'Could not reach DeepSeek API (network error).'
+    return $true
+  }
+}
+
+# --- interactive setup -------------------------------------------------------
 function Invoke-Setup {
-  Write-Host ''
-  Write-Host '+------------------------------------------+'
-  Write-Host '|  deepclaude - first-time setup           |'
-  Write-Host '+------------------------------------------+'
-  Write-Host ''
-  Write-Host "Claude Code will run against DeepSeek's API."
-  Write-Host 'You only need to enter your key once.'
-  Write-Host 'Get a key: https://platform.deepseek.com/api_keys'
-  Write-Host ''
+  Write-Say ''
+  Write-Say '+------------------------------------------+'
+  Write-Say '|  deepclaude - first-time setup           |'
+  Write-Say '+------------------------------------------+'
+  Write-Say ''
+  Write-Say "Claude Code will run against DeepSeek's API."
+  Write-Say 'You only need to enter your key once.'
+  Write-Say 'Get a key: https://platform.deepseek.com/api_keys'
+  Write-Say ''
   for ($i = 0; $i -lt 3; $i++) {
     $secure = Read-Host -AsSecureString 'DeepSeek API key'
     $bstr   = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     $key    = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
     $key = $key.Trim()
-    if ($key) { Save-Key $key; return }
-    Write-Host "Key can't be empty."
+    if ($key) {
+      if (-not (Test-KeyFormat $key)) {
+        Write-Warn "Key should start with 'sk-'. Please double-check."
+      }
+      Save-Key $key
+      Write-Say ''
+      Write-Say 'Key saved. Verifying...'
+      Test-KeyApi $key | Out-Null
+      return
+    }
+    Write-Say "Key can't be empty."
   }
-  Write-Host 'Aborting after 3 empty attempts.'
-  exit 1
+  Write-ErrorX 'Aborting after 3 empty attempts.'
 }
 
-# --- subcommands -----------------------------------------------------------
-if ($args.Count -ge 1) {
-  switch -Regex ($args[0]) {
+# --- help --------------------------------------------------------------------
+function Show-Help {
+@'
+deepclaude — run Claude Code against DeepSeek's Anthropic-compatible API.
+
+USAGE
+  deepclaude [FLAGS] [--] [ARGUMENTS...]
+
+FLAGS
+  --help, help       Show this help message
+  --version          Show version number
+  --dry-run          Print what would be executed, without running Claude Code
+  --verbose          Print debug information during execution
+  --safe             Run WITHOUT --dangerously-skip-permissions (more prompts)
+
+SUBCOMMANDS
+  deepclaude config [KEY]       Set or change the stored API key
+  deepclaude change-key [KEY]   Alias for config
+  deepclaude reset              Delete the stored API key
+  deepclaude update             Update to the latest version
+  deepclaude verify             Verify the stored API key against DeepSeek API
+  deepclaude show-config        Print current configuration (key masked)
+
+KEY RESOLUTION ORDER
+  1. deepclaude config <KEY>
+  2. Stored config file (%APPDATA%\deepclaude\config)
+  3. DEEPSEEK_API_KEY environment variable (auto-saved on use)
+  4. Interactive prompt
+
+ENVIRONMENT VARIABLES
+  DEEPSEEK_API_KEY              DeepSeek API key (saved automatically on first use)
+  DEEPCLAUDE_SAFE=1             Same as --safe
+  DEEPCLAUDE_VERBOSE=1          Same as --verbose
+  DEEPCLAUDE_MODEL              Default model (default: deepseek-v4-pro[1m])
+  DEEPCLAUDE_HAIKU_MODEL        Haiku/flash model (default: deepseek-v4-flash)
+  DEEPCLAUDE_SUBAGENT_MODEL     Subagent model (default: deepseek-v4-flash)
+  DEEPCLAUDE_EFFORT             Effort level (default: max)
+
+CONFIG FILE
+  Path:  %APPDATA%\deepclaude\config
+  Format: KEY=VALUE (one per line)
+
+EXAMPLES
+  deepclaude                              # First run: enter key, then start
+  deepclaude "refactor this module"       # Pass a prompt to Claude Code
+  deepclaude --safe "rm -rf ./build"      # Run with permission prompts enabled
+  deepclaude --dry-run --verbose          # Preview what will be set
+  deepclaude config sk-xxx                # Set key without interactive prompt
+  deepclaude verify                       # Check if your stored key works
+  deepclaude show-config                  # See current settings
+  $env:DEEPCLAUDE_MODEL='other'; deepclaude  # Override model for one session
+'@
+  exit 0
+}
+
+# --- show config -------------------------------------------------------------
+function Show-Config {
+  $key = Get-Key
+  $savedSafe = if ($val = Read-Config 'DEEPCLAUDE_SAFE') { $val } else { '0' }
+
+  Write-Host "Config file : $Script:ConfigFile"
+  Write-Host "Config dir  : $Script:ConfigDir"
+  Write-Host '---'
+  if ($key) { Write-Host "API key     : (stored, $($key.Length) chars)" } else { Write-Host 'API key     : (not set)' }
+  Write-Host "Safe mode   : $(if ($env:DEEPCLAUDE_SAFE) { $env:DEEPCLAUDE_SAFE } else { $savedSafe })"
+  Write-Host '---'
+  Write-Host 'Model overrides (from config or env):'
+  $model    = if ($env:DEEPCLAUDE_MODEL)        { $env:DEEPCLAUDE_MODEL }        else { $v = Read-Config 'DEEPCLAUDE_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
+  $haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)   { $env:DEEPCLAUDE_HAIKU_MODEL }   else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
+  $subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL){ $env:DEEPCLAUDE_SUBAGENT_MODEL} else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+  $effort   = if ($env:DEEPCLAUDE_EFFORT)        { $env:DEEPCLAUDE_EFFORT }        else { $v = Read-Config 'DEEPCLAUDE_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
+
+  Write-Host "  MODEL        : $model"
+  Write-Host "  HAIKU_MODEL  : $haiku"
+  Write-Host "  SUBAGENT     : $subagent"
+  Write-Host "  EFFORT       : $effort"
+  exit 0
+}
+
+# --- dry run -----------------------------------------------------------------
+function Invoke-DryRun {
+  param([array]$RemainingArgs)
+  $key      = Get-Key
+  $safeMode = if ($env:DEEPCLAUDE_SAFE) { $env:DEEPCLAUDE_SAFE } else { $v = Read-Config 'DEEPCLAUDE_SAFE'; if ($v) { $v } else { '0' } }
+  $model    = if ($env:DEEPCLAUDE_MODEL)        { $env:DEEPCLAUDE_MODEL }        else { $v = Read-Config 'DEEPCLAUDE_MODEL';        if ($v) { $v } else { $Script:DefaultModel } }
+  $haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)   { $env:DEEPCLAUDE_HAIKU_MODEL }   else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';   if ($v) { $v } else { $Script:DefaultHaikuModel } }
+  $subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL){ $env:DEEPCLAUDE_SUBAGENT_MODEL} else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+  $effort   = if ($env:DEEPCLAUDE_EFFORT)        { $env:DEEPCLAUDE_EFFORT }        else { $v = Read-Config 'DEEPCLAUDE_EFFORT';        if ($v) { $v } else { $Script:DefaultEffort } }
+
+  Write-Host '═══════════════════════════════════════════════'
+  Write-Host '  deepclaude dry-run'
+  Write-Host '═══════════════════════════════════════════════'
+  Write-Host ''
+  Write-Host 'Would set these environment variables:'
+  Write-Host ''
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_BASE_URL', 'https://api.deepseek.com/anthropic')
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_AUTH_TOKEN', $(if ($key) { "(hidden, $($key.Length) chars)" } else { '(not set)' }))
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_MODEL', $model)
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_DEFAULT_OPUS_MODEL', $model)
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_DEFAULT_SONNET_MODEL', $model)
+  Write-Host ('  {0,-36} {1}' -f 'ANTHROPIC_DEFAULT_HAIKU_MODEL', $haiku)
+  Write-Host ('  {0,-36} {1}' -f 'CLAUDE_CODE_SUBAGENT_MODEL', $subagent)
+  Write-Host ('  {0,-36} {1}' -f 'CLAUDE_CODE_EFFORT_LEVEL', $effort)
+  Write-Host ''
+  if ($safeMode -eq '1') {
+    Write-Host "Would run: claude $($RemainingArgs -join ' ')"
+  } else {
+    Write-Host "Would run: claude --dangerously-skip-permissions $($RemainingArgs -join ' ')"
+  }
+  Write-Host ''
+  if ($safeMode -ne '1') {
+    Write-Host '⚠  --dangerously-skip-permissions is ENABLED (use --safe to disable)'
+  } else {
+    Write-Host '✓  Safe mode: tools will require per-action approval'
+  }
+  exit 0
+}
+
+# --- subcommand handler ------------------------------------------------------
+function Invoke-Subcommand {
+  param([string]$Cmd, [array]$SubArgs)
+
+  switch -Regex ($Cmd) {
     '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key)$' {
-      if ($args.Count -ge 2) { Save-Key $args[1] } else { Invoke-Setup }
-      Write-Host "Done. Run 'deepclaude' to start."
+      if ($SubArgs.Count -ge 1) { Save-Key $SubArgs[0] } else { Invoke-Setup }
+      Write-Say "Done. Run 'deepclaude' to start."
       exit 0
     }
     '^(reset|--reset)$' {
-      if (Test-Path $ConfigFile) { Remove-Item $ConfigFile -Force }
-      Write-Host 'Stored key removed.'
+      if (Test-Path $Script:ConfigFile) {
+        Remove-Item $Script:ConfigFile -Force
+        Write-Say "Stored key removed ($Script:ConfigFile)."
+      } else {
+        Write-Say 'No stored key to remove.'
+      }
       exit 0
     }
     '^(update|--update|upgrade|--upgrade)$' {
-      Write-Host 'Updating deepclaude to the latest version...'
+      Write-Say 'Updating deepclaude to the latest version...'
       irm 'https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.ps1' | iex
       exit 0
+    }
+    '^(verify|--verify)$' {
+      $key = Get-Key
+      if (-not $key) { Write-ErrorX "No stored key. Run 'deepclaude config' first." }
+      Write-Say "Stored key: $($key.Substring(0, [Math]::Min(5, $key.Length)))...$($key.Substring($key.Length - [Math]::Min(4, $key.Length))) ($($key.Length) chars)"
+      if (Test-KeyFormat $key) {
+        Write-Say 'Format:  ✓ (starts with sk-)'
+      } else {
+        Write-Warn 'Format:  ✗ (expected sk-... prefix)'
+      }
+      Test-KeyApi $key | Out-Null
+      exit 0
+    }
+    '^(show-config|--show-config|show|--show)$' {
+      Show-Config
+    }
+    '^(help|--help|-h)$' {
+      Show-Help
     }
   }
 }
 
-# --- resolve the key -------------------------------------------------------
+# ============================================================================
+# MAIN
+# ============================================================================
+
+# Separate deepclaude flags from passthrough args
+$dryRun      = $false
+$passthrough = [System.Collections.ArrayList]::new()
+$i           = 0
+
+while ($i -lt $args.Count) {
+  switch ($args[$i]) {
+    '--help'    { Show-Help }
+    'help'      { Show-Help }
+    '-h'        { Show-Help }
+    '--version' { Write-Host "deepclaude v$Script:Version"; exit 0 }
+    '--dry-run' { $dryRun = $true; $i++ }
+    '--verbose' { $env:DEEPCLAUDE_VERBOSE = '1'; $i++ }
+    '--safe'    { $env:DEEPCLAUDE_SAFE = '1'; $i++ }
+    '--'        { $i++; for (; $i -lt $args.Count; $i++) { $passthrough.Add($args[$i]) | Out-Null }; break }
+    default {
+      # Check if this is a subcommand
+      if ($args[$i] -match '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key|reset|--reset|update|--update|upgrade|--upgrade|verify|--verify|show-config|--show-config|show|--show)$') {
+        $subArgs = @()
+        for ($j = $i + 1; $j -lt $args.Count; $j++) { $subArgs += $args[$j] }
+        Invoke-Subcommand -Cmd $args[$i] -SubArgs $subArgs
+      }
+      $passthrough.Add($args[$i]) | Out-Null
+      $i++
+    }
+  }
+}
+
+Write-DebugX "deepclaude v$Script:Version starting"
+Write-DebugX "CONFIG_FILE=$Script:ConfigFile"
+Write-DebugX "DRY_RUN=$dryRun"
+Write-DebugX "DEEPCLAUDE_SAFE=$($env:DEEPCLAUDE_SAFE ?? '0')"
+Write-DebugX "DEEPCLAUDE_VERBOSE=$($env:DEEPCLAUDE_VERBOSE ?? '0')"
+
+# --- resolve the key ---------------------------------------------------------
 $key = Get-Key
+Write-DebugX "Key from config: $(if ($key) { "found ($($key.Length) chars)" } else { 'not found' })"
 
 if (-not $key -and $env:DEEPSEEK_API_KEY) {
   $key = $env:DEEPSEEK_API_KEY.Trim()
-  Write-Host 'Using DEEPSEEK_API_KEY from environment; saving for next time.'
-  Save-Key $key
+  Write-Say 'Using DEEPSEEK_API_KEY from environment; saving for next time.'
+  try {
+    Save-Key $key
+  } catch {
+    Write-Warn "Could not save key to $Script:ConfigFile (disk full or permission issue?)."
+    Write-Warn 'Key will only be used for this session.'
+  }
 }
 
 if (-not $key) {
@@ -100,25 +374,49 @@ if (-not $key) {
 }
 
 if (-not $key) {
-  Write-Host "No API key available. Run 'deepclaude config' to set one."
-  exit 1
+  Write-ErrorX "No API key available. Run 'deepclaude config' to set one."
 }
 
-# --- launch ----------------------------------------------------------------
+Write-DebugX "Key resolved ($($key.Length) chars)"
+
+# --- resolve model overrides -------------------------------------------------
+$model    = if ($env:DEEPCLAUDE_MODEL)         { $env:DEEPCLAUDE_MODEL }         else { $v = Read-Config 'DEEPCLAUDE_MODEL';         if ($v) { $v } else { $Script:DefaultModel } }
+$haiku    = if ($env:DEEPCLAUDE_HAIKU_MODEL)    { $env:DEEPCLAUDE_HAIKU_MODEL }    else { $v = Read-Config 'DEEPCLAUDE_HAIKU_MODEL';    if ($v) { $v } else { $Script:DefaultHaikuModel } }
+$subagent = if ($env:DEEPCLAUDE_SUBAGENT_MODEL) { $env:DEEPCLAUDE_SUBAGENT_MODEL } else { $v = Read-Config 'DEEPCLAUDE_SUBAGENT_MODEL'; if ($v) { $v } else { $Script:DefaultSubagent } }
+$effort   = if ($env:DEEPCLAUDE_EFFORT)         { $env:DEEPCLAUDE_EFFORT }         else { $v = Read-Config 'DEEPCLAUDE_EFFORT';         if ($v) { $v } else { $Script:DefaultEffort } }
+$safeMode = if ($env:DEEPCLAUDE_SAFE)           { $env:DEEPCLAUDE_SAFE }           else { $v = Read-Config 'DEEPCLAUDE_SAFE';           if ($v) { $v } else { '0' } }
+
+Write-DebugX "MODEL=$model"
+Write-DebugX "HAIKU_MODEL=$haiku"
+Write-DebugX "SUBAGENT_MODEL=$subagent"
+Write-DebugX "EFFORT=$effort"
+Write-DebugX "SAFE_MODE=$safeMode"
+
+# --- dry-run early exit ------------------------------------------------------
+if ($dryRun) {
+  Invoke-DryRun -RemainingArgs $passthrough.ToArray()
+}
+
+# --- launch ------------------------------------------------------------------
 if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-  Write-Host 'claude CLI not found on PATH.'
-  Write-Host 'Install Claude Code first: https://docs.claude.com/en/docs/claude-code'
-  exit 127
+  Write-ErrorX "claude CLI not found on PATH.`nInstall Claude Code first: https://docs.claude.com/en/docs/claude-code"
 }
 
 $env:ANTHROPIC_BASE_URL            = 'https://api.deepseek.com/anthropic'
 $env:ANTHROPIC_AUTH_TOKEN          = $key
-$env:ANTHROPIC_MODEL               = 'deepseek-v4-pro[1m]'
-$env:ANTHROPIC_DEFAULT_OPUS_MODEL  = 'deepseek-v4-pro[1m]'
-$env:ANTHROPIC_DEFAULT_SONNET_MODEL = 'deepseek-v4-pro[1m]'
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = 'deepseek-v4-flash'
-$env:CLAUDE_CODE_SUBAGENT_MODEL    = 'deepseek-v4-flash'
-$env:CLAUDE_CODE_EFFORT_LEVEL      = 'max'
+$env:ANTHROPIC_MODEL               = $model
+$env:ANTHROPIC_DEFAULT_OPUS_MODEL  = $model
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = $model
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $haiku
+$env:CLAUDE_CODE_SUBAGENT_MODEL    = $subagent
+$env:CLAUDE_CODE_EFFORT_LEVEL      = $effort
 
-& claude --dangerously-skip-permissions @args
+Write-DebugX 'Environment variables set. Launching claude...'
+
+if ($safeMode -eq '1') {
+  Write-Say 'Running in safe mode (permission prompts enabled).'
+  & claude @passthrough
+} else {
+  & claude --dangerously-skip-permissions @passthrough
+}
 exit $LASTEXITCODE
