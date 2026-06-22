@@ -291,7 +291,7 @@ function Invoke-Subcommand {
     }
     '^(update|--update|upgrade|--upgrade)$' {
       Write-Say 'Updating deepclaude to the latest version...'
-      irm 'https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.ps1' | iex
+      irm 'https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1' | iex
       exit 0
     }
     '^(verify|--verify)$' {

@@ -5,7 +5,7 @@ Thanks for your interest in improving DeepClaude!
 ## Development setup
 
 ```bash
-git clone https://github.com/RafiulM/deepclaude.git
+git clone https://github.com/Muhira007/deepclaude-v2.git
 cd deepclaude
 ```
 
@@ -92,4 +92,4 @@ This updates `VERSION` in both `deepclaude` and `deepclaude.ps1`.
 
 ## Getting help
 
-Open an issue on GitHub: https://github.com/RafiulM/deepclaude/issues
+Open an issue on GitHub: https://github.com/Muhira007/deepclaude-v2/issues

@@ -440,7 +440,7 @@ echo "DEEPCLAUDE_SAFE=1" >> ~/.config/deepclaude/config
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.sh | bash
 ```
 
 Menginstal script `deepclaude` ke `~/.local/bin`. Jika direktori tersebut belum
@@ -450,7 +450,7 @@ ada di `PATH`, installer akan memberi tahu baris yang perlu ditambahkan ke
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1 | iex
 ```
 
 > Di Windows kamu juga bisa menggunakan command macOS/Linux di atas dari
@@ -626,5 +626,5 @@ MIT — lihat [LICENSE](LICENSE).
 
 ---
 
-> Dibuat dengan ❤️ oleh [RafiulM](https://github.com/RafiulM) |
+> Dibuat dengan ❤️ oleh [Muhira007](https://github.com/Muhira007) |
 > Dokumentasi diperkaya dengan diagram oleh [Claude Code](https://claude.com/claude-code)

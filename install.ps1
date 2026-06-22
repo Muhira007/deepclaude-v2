@@ -1,6 +1,6 @@
 # deepclaude installer for Windows (PowerShell).
 # Usage:
-#   irm https://raw.githubusercontent.com/RafiulM/deepclaude/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1 | iex
 #
 # Options:
 #   $env:VERSION = 'v1.0.0'; irm ... | iex   # Pin a version
@@ -9,7 +9,7 @@
 $ErrorActionPreference = 'Stop'
 
 $Version = if ($env:VERSION) { $env:VERSION } else { 'main' }
-$Repo    = "https://raw.githubusercontent.com/RafiulM/deepclaude/$Version"
+$Repo    = "https://raw.githubusercontent.com/Muhira007/deepclaude-v2/$Version"
 $Dest    = Join-Path $env:LOCALAPPDATA 'Programs\deepclaude'
 
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
