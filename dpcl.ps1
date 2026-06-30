@@ -99,25 +99,30 @@ function Test-KeyApi {
       -Headers @{ Authorization = "Bearer $Key" } `
       -Method Get `
       -TimeoutSec 10 `
-      -SkipHttpErrorCheck `
-      -ErrorAction SilentlyContinue
+      -ErrorAction Stop
     if ($resp.StatusCode -eq 200) {
       Write-Say '✓ API key is valid.'
       return $true
-    } elseif ($resp.StatusCode -eq 401) {
-      Write-Warn '✗ API key is invalid or expired (HTTP 401).'
-      return $false
-    } elseif ($resp.StatusCode -eq 403) {
-      Write-Warn '✗ API key lacks permissions (HTTP 403).'
-      return $false
-    } else {
-      Write-Warn "Unexpected response (HTTP $($resp.StatusCode)). Key may still work."
-      return $true
     }
   } catch {
-    Write-Warn 'Could not reach DeepSeek API (network error).'
-    return $true
+    if ($_.Exception -and $_.Exception.Response) {
+      $statusCode = [int]$_.Exception.Response.StatusCode
+      if ($statusCode -eq 401) {
+        Write-Warn '✗ API key is invalid or expired (HTTP 401).'
+        return $false
+      } elseif ($statusCode -eq 403) {
+        Write-Warn '✗ API key lacks permissions (HTTP 403).'
+        return $false
+      } else {
+        Write-Warn "Unexpected response (HTTP $statusCode). Key may still work."
+        return $true
+      }
+    } else {
+      Write-Warn 'Could not reach DeepSeek API (network error).'
+      return $true
+    }
   }
+  return $true
 }
 
 # --- interactive setup -------------------------------------------------------
@@ -350,8 +355,8 @@ while ($i -lt $args.Count) {
 Write-DebugX "dpcl v$Script:Version starting"
 Write-DebugX "CONFIG_FILE=$Script:ConfigFile"
 Write-DebugX "DRY_RUN=$dryRun"
-Write-DebugX "DPCL_SAFE=$($env:DPCL_SAFE ?? '0')"
-Write-DebugX "DPCL_VERBOSE=$($env:DPCL_VERBOSE ?? '0')"
+Write-DebugX "DPCL_SAFE=$(if ($env:DPCL_SAFE) { $env:DPCL_SAFE } else { '0' })"
+Write-DebugX "DPCL_VERBOSE=$(if ($env:DPCL_VERBOSE) { $env:DPCL_VERBOSE } else { '0' })"
 
 # --- resolve the key ---------------------------------------------------------
 $key = Get-Key
