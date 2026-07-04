@@ -307,6 +307,9 @@ graph LR
 | `reset` | Hapus API key yang tersimpan |
 | `update` | Update ke versi terbaru |
 | `verify` | Verifikasi API key terhadap DeepSeek API |
+| `doctor` | Cek health status sistem (Node.js, npm, claude, API key) |
+| `clean` | Bersihkan cache/memori `.claude` di project lokal |
+| `alias [x]` | Buat shortcut alias otomatis (default: `c`) di profil terminal |
 | `show-config` | Tampilkan konfigurasi saat ini (key dimasking) |
 
 ### Contoh Penggunaan Flags
@@ -503,6 +506,18 @@ Alias yang diterima: `config`, `set-key`, `change` — semuanya sama dengan `cha
 
 > ⚠️ Key disimpan dalam **plaintext** di mesin lokal. Siapa pun dengan akses ke
 > akun user kamu bisa membacanya. Perlakukan seperti kredensial lokal lainnya.
+
+---
+
+## 🛠️ Fitur Tambahan (Utility)
+
+Selain tugas utamanya sebagai wrapper, `dpcl` juga dilengkapi dengan beberapa perintah bantu yang sangat praktis:
+
+```bash
+dpcl doctor      # Mengecek kelayakan sistem (Node.js, npm, instalasi claude, dan koneksi API Key)
+dpcl clean       # Menghapus direktori `.claude` (ingatan project lokal) di folder saat ini
+dpcl alias       # Menambahkan alias 'c' (atau argumen opsional lain) ke bashrc/zshrc/PowerShell profile otomatis
+```
 
 ---
 
