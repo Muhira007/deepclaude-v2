@@ -109,9 +109,9 @@ verify_key_api() {
     "https://api.deepseek.com/v1/models" 2>/dev/null || echo "000")
 
   case "$http_code" in
-    200) say "✓ API key is valid."; return 0 ;;
-    401) say "✗ API key is invalid or expired (HTTP 401)."; return 1 ;;
-    403) say "✗ API key lacks permissions (HTTP 403)."; return 1 ;;
+    200) say "[v] API key is valid."; return 0 ;;
+    401) say "[x] API key is invalid or expired (HTTP 401)."; return 1 ;;
+    403) say "[x] API key lacks permissions (HTTP 403)."; return 1 ;;
     000) warn "Could not reach DeepSeek API (network error)."; return 2 ;;
     *)   warn "Unexpected response (HTTP $http_code). Key may still work."; return 2 ;;
   esac
@@ -282,7 +282,7 @@ do_dry_run() {
   if [ "$safe_mode" != "1" ]; then
     echo "⚠  --dangerously-skip-permissions is ENABLED (use --safe to disable)"
   else
-    echo "✓  Safe mode: tools will require per-action approval"
+    echo "[v]  Safe mode: tools will require per-action approval"
   fi
   exit 0
 }
@@ -320,11 +320,103 @@ handle_subcommand() {
       fi
       say "Stored key: ${key:0:5}...${key: -4} (${#key} chars)"
       if validate_key_format "$key"; then
-        say "Format:  ✓ (starts with sk-)"
+        say "Format:  [v] (starts with sk-)"
       else
-        warn "Format:  ✗ (expected sk-... prefix)"
+        warn "Format:  [x] (expected sk-... prefix)"
       fi
       verify_key_api "$key" || true
+      exit 0
+      ;;
+    doctor)
+      say "--- dpcl Doctor ---"
+      local healthy=1
+
+      if command -v node >/dev/null 2>&1; then
+        local node_ver; node_ver="$(node -v)"
+        say "[v] Node.js installed ($node_ver)"
+      else
+        warn "[x] Node.js not found. Claude Code requires Node.js."
+        healthy=0
+      fi
+
+      if command -v npm >/dev/null 2>&1; then
+        local npm_ver; npm_ver="$(npm -v)"
+        say "[v] npm installed ($npm_ver)"
+      else
+        warn "[x] npm not found."
+        healthy=0
+      fi
+
+      if command -v claude >/dev/null 2>&1; then
+        local claude_ver; claude_ver="$(claude --version)"
+        say "[v] Claude Code installed ($claude_ver)"
+      else
+        warn "[x] Claude Code not found. Will prompt for auto-install on launch."
+        healthy=0
+      fi
+
+      local key; key="$(read_key || true)"
+      if [ -n "$key" ]; then
+        say "[v] API Key is configured."
+        if verify_key_api "$key" >/dev/null 2>&1; then
+          say "[v] API Key can reach DeepSeek servers successfully."
+        else
+          warn "[x] API Key failed validation."
+          healthy=0
+        fi
+      else
+        warn "[x] No API Key set. Run 'dpcl config'."
+        healthy=0
+      fi
+
+      if [ "$healthy" -eq 1 ]; then
+        say ""
+        say "System is fully ready to use dpcl!"
+      else
+        warn ""
+        warn "Some checks failed. Please fix the warnings above."
+      fi
+      exit 0
+      ;;
+    clean)
+      say "Clearing Claude Code memory/cache..."
+      local local_claude=".claude"
+      if [ -d "$local_claude" ]; then
+        rm -rf "$local_claude"
+        say "[v] Removed local project memory ($local_claude)"
+      else
+        say "[v] No local project memory found."
+      fi
+      exit 0
+      ;;
+    alias)
+      local alias_name="c"
+      if [ "${2:-}" != "" ]; then
+        alias_name="$2"
+      fi
+      
+      local shell_rc=""
+      local shell_name
+      shell_name="$(basename "${SHELL:-/bin/bash}")"
+      
+      case "$shell_name" in
+        zsh)  shell_rc="$HOME/.zshrc" ;;
+        bash) 
+          if [ -f "$HOME/.bashrc" ]; then shell_rc="$HOME/.bashrc"
+          elif [ -f "$HOME/.bash_profile" ]; then shell_rc="$HOME/.bash_profile"
+          else shell_rc="$HOME/.bashrc"
+          fi
+          ;;
+        *)    shell_rc="$HOME/.bashrc" ;;
+      esac
+      
+      local alias_cmd="alias $alias_name='dpcl'"
+      echo "" >> "$shell_rc"
+      echo "# Added by dpcl" >> "$shell_rc"
+      echo "$alias_cmd" >> "$shell_rc"
+      
+      say "[v] Alias '$alias_name' for 'dpcl' has been added to $shell_rc"
+      say "Restart your terminal or run 'source $shell_rc' to use it."
       exit 0
       ;;
     show-config|--show-config|show|--show)
@@ -374,7 +466,7 @@ while [ $# -gt 0 ]; do
       ;;
     config|--config|set-key|--set-key|change|--change|change-key|--change-key|\
     reset|--reset|update|--update|upgrade|--upgrade|\
-    verify|--verify|show-config|--show-config|show|--show)
+    verify|--verify|doctor|clean|alias|show-config|--show-config|show|--show)
       handle_subcommand "$@"
       ;;
     *)

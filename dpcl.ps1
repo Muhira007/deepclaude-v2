@@ -101,17 +101,17 @@ function Test-KeyApi {
       -TimeoutSec 10 `
       -ErrorAction Stop
     if ($resp.StatusCode -eq 200) {
-      Write-Say '✓ API key is valid.'
+      Write-Say '[v] API key is valid.'
       return $true
     }
   } catch {
     if ($_.Exception -and $_.Exception.Response) {
       $statusCode = [int]$_.Exception.Response.StatusCode
       if ($statusCode -eq 401) {
-        Write-Warn '✗ API key is invalid or expired (HTTP 401).'
+        Write-Warn '[x] API key is invalid or expired (HTTP 401).'
         return $false
       } elseif ($statusCode -eq 403) {
-        Write-Warn '✗ API key lacks permissions (HTTP 403).'
+        Write-Warn '[x] API key lacks permissions (HTTP 403).'
         return $false
       } else {
         Write-Warn "Unexpected response (HTTP $statusCode). Key may still work."
@@ -270,7 +270,7 @@ function Invoke-DryRun {
   if ($safeMode -ne '1') {
     Write-Host '⚠  --dangerously-skip-permissions is ENABLED (use --safe to disable)'
   } else {
-    Write-Host '✓  Safe mode: tools will require per-action approval'
+    Write-Host '[v]  Safe mode: tools will require per-action approval'
   }
   exit 0
 }
@@ -279,48 +279,112 @@ function Invoke-DryRun {
 function Invoke-Subcommand {
   param([string]$Cmd, [array]$SubArgs)
 
-  switch -Regex ($Cmd) {
-    '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key)$' {
-      if ($SubArgs.Count -ge 1) { Save-Key $SubArgs[0] } else { Invoke-Setup }
-      Write-Say "Done. Run 'dpcl' to start."
-      exit 0
+  if ($Cmd -match '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key)$') {
+    if ($SubArgs.Count -ge 1) { Save-Key $SubArgs[0] } else { Invoke-Setup }
+    Write-Say "Done. Run 'dpcl' to start."
+    exit 0
+  } elseif ($Cmd -match '^(reset|--reset)$') {
+    if (Test-Path $Script:ConfigFile) {
+      Remove-Item $Script:ConfigFile -Force
+      Write-Say "Stored key removed ($Script:ConfigFile)."
+    } else {
+      Write-Say 'No stored key to remove.'
     }
-    '^(reset|--reset)$' {
-      if (Test-Path $Script:ConfigFile) {
-        Remove-Item $Script:ConfigFile -Force
-        Write-Say "Stored key removed ($Script:ConfigFile)."
+    exit 0
+  } elseif ($Cmd -match '^(update|--update|upgrade|--upgrade)$') {
+    Write-Say 'Updating dpcl to the latest version...'
+    irm 'https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1' | iex
+    exit 0
+  } elseif ($Cmd -match '^(verify|--verify)$') {
+    $key = Get-Key
+    if (-not $key) { Write-ErrorX "No stored key. Run 'dpcl config' first." }
+    Write-Say "Stored key: $($key.Substring(0, [Math]::Min(5, $key.Length)))...$($key.Substring($key.Length - [Math]::Min(4, $key.Length))) ($($key.Length) chars)"
+    if (Test-KeyFormat $key) {
+      Write-Say 'Format:  [v] (starts with sk-)'
+    } else {
+      Write-Warn 'Format:  [x] (expected sk-... prefix)'
+    }
+    Test-KeyApi $key | Out-Null
+    exit 0
+  } elseif ($Cmd -match '^(doctor)$') {
+    Write-Say "--- dpcl Doctor ---"
+    $healthy = $true
+    
+    # Node.js check
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+      $nodeVer = (node -v).Trim()
+      Write-Say "[v] Node.js installed ($nodeVer)"
+    } else {
+      Write-Warn "[x] Node.js not found. Claude Code requires Node.js."
+      $healthy = $false
+    }
+    
+    # npm check
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+      $npmVer = (npm -v).Trim()
+      Write-Say "[v] npm installed ($npmVer)"
+    } else {
+      Write-Warn "[x] npm not found."
+      $healthy = $false
+    }
+    
+    # claude check
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+      $claudeVer = (claude --version).Trim()
+      Write-Say "[v] Claude Code installed ($claudeVer)"
+    } else {
+      Write-Warn "[x] Claude Code not found. Will prompt for auto-install on launch."
+      $healthy = $false
+    }
+    
+    # API Key
+    $key = Get-Key
+    if ($key) {
+      Write-Say "[v] API Key is configured."
+      if (Test-KeyApi $key) {
+        Write-Say "[v] API Key can reach DeepSeek servers successfully."
       } else {
-        Write-Say 'No stored key to remove.'
+        Write-Warn "[x] API Key failed validation."
+        $healthy = $false
       }
-      exit 0
+    } else {
+      Write-Warn "[x] No API Key set. Run 'dpcl config'."
+      $healthy = $false
     }
-    '^(update|--update|upgrade|--upgrade)$' {
-      Write-Say 'Updating dpcl to the latest version...'
-      irm 'https://raw.githubusercontent.com/Muhira007/deepclaude-v2/main/install.ps1' | iex
-      exit 0
+    
+    if ($healthy) {
+      Write-Say "`nSystem is fully ready to use dpcl!"
+    } else {
+      Write-Warn "`nSome checks failed. Please fix the warnings above."
     }
-    '^(verify|--verify)$' {
-      $key = Get-Key
-      if (-not $key) { Write-ErrorX "No stored key. Run 'dpcl config' first." }
-      Write-Say "Stored key: $($key.Substring(0, [Math]::Min(5, $key.Length)))...$($key.Substring($key.Length - [Math]::Min(4, $key.Length))) ($($key.Length) chars)"
-      if (Test-KeyFormat $key) {
-        Write-Say 'Format:  ✓ (starts with sk-)'
-      } else {
-        Write-Warn 'Format:  ✗ (expected sk-... prefix)'
-      }
-      Test-KeyApi $key | Out-Null
-      exit 0
+    exit 0
+  } elseif ($Cmd -match '^(clean)$') {
+    Write-Say "Clearing Claude Code memory/cache..."
+    $localClaude = Join-Path (Get-Location) ".claude"
+    if (Test-Path $localClaude) {
+      Remove-Item -Recurse -Force $localClaude
+      Write-Say "[v] Removed local project memory ($localClaude)"
+    } else {
+      Write-Say "[v] No local project memory found."
     }
-    '^(show-config|--show-config|show|--show)$' {
-      Show-Config
+    exit 0
+  } elseif ($Cmd -match '^(alias)$') {
+    $aliasName = 'c'
+    if ($SubArgs.Count -gt 0) { $aliasName = $SubArgs[0] }
+    if (-not (Test-Path $PROFILE)) {
+      New-Item -ItemType File -Path $PROFILE -Force | Out-Null
     }
-    '^(help|--help|-h)$' {
-      Show-Help
-    }
+    $aliasCmd = "Set-Alias $aliasName dpcl"
+    Add-Content -Path $PROFILE -Value "`n# Added by dpcl`n$aliasCmd"
+    Write-Say "[v] Alias '$aliasName' for 'dpcl' has been added to your PowerShell profile ($PROFILE)."
+    Write-Say "Restart your terminal or run . '$PROFILE' to use it."
+    exit 0
+  } elseif ($Cmd -match '^(show-config|--show-config|show|--show)$') {
+    Show-Config
+  } elseif ($Cmd -match '^(help|--help|-h)$') {
+    Show-Help
   }
-}
-
-# ============================================================================
+}# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -341,7 +405,7 @@ while ($i -lt $args.Count) {
     '--'        { $i++; for (; $i -lt $args.Count; $i++) { $passthrough.Add($args[$i]) | Out-Null }; break }
     default {
       # Check if this is a subcommand
-      if ($args[$i] -match '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key|reset|--reset|update|--update|upgrade|--upgrade|verify|--verify|show-config|--show-config|show|--show)$') {
+      if ($args[$i] -match '^(config|--config|set-key|--set-key|change|--change|change-key|--change-key|reset|--reset|update|--update|upgrade|--upgrade|verify|--verify|doctor|clean|alias|show-config|--show-config|show|--show)$') {
         $subArgs = @()
         for ($j = $i + 1; $j -lt $args.Count; $j++) { $subArgs += $args[$j] }
         Invoke-Subcommand -Cmd $args[$i] -SubArgs $subArgs
